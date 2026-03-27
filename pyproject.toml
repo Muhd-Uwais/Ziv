@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]                        # Build-time deps
+build-backend = "hatchling.build"               # Backend to call       
+
+[project]
+name = "lfit"                                   # PyPI / pip name
+version = "0.1.0"                               # Version
+description = "Local File Intelligence Tool"    
+requires-python = ">=3.10"                      # Python Version requirement
+dependencies = [
+    "typer>=0.24.0",                            # Runtime deps
+    "sentence-transformers",
+    "faiss-cpu",
+    "numpy",
+    "fastapi",
+    "uvicorn",
+    "requests",
+]
+authors = [
+    { name = "Muhd Uwais" }
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lfit"]
+
+[project.scripts]
+lfit = "lfit.cli.main:app"                           # CLI entry point

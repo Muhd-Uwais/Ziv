@@ -1,0 +1,11 @@
+directories:
+__pycache__/
+models/
+.venv/
+.lfit/
+dist/
+
+
+files:
+uv.lock
+*.pyc
