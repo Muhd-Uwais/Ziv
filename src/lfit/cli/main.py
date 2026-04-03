@@ -1,46 +1,47 @@
-from pathlib import Path
+import typer
+import logging
+import time
 from importlib.metadata import version
 from lfit.pipelines.index_builder import BuildIndex
 from lfit.core.retriever import Retriever
-from lfit.api.process_manage import start_server, stop_server
-import typer
-import logging
+from lfit.api.process_manager import start_server, stop_server, get_server_status
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.table import Table
+from rich.panel import Panel
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-)
-
-logger = logging.getLogger(__name__)
 
 app = typer.Typer(
     context_settings={"help_option_names": ["--help", "-h"]},
-    help="Simple CLI interface, DEV stage Local File Intelligence Tool",
+    add_completion=False,
+    help="🚀 lfit: Local File Intelligence Tool (Semantic Code Search)",
 )
+console = Console()
 
-VERSION = version("lfit")
+try:
+    VERSION = version("lfit")
+except Exception:
+    VERSION = "0.1.0-dev"
 
-API = "http://localhost:8000/"
+
+def setup_logging(verbose: bool):
+    """Configures logging to show technical details only if requested."""
+    level = logging.INFO if verbose else logging.ERROR
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler(rich_tracebacks=True,
+                              console=console, show_path=False)]
+    )
 
 
 def version_callback(value: bool):
     if value:
-        typer.echo(f"lfit version: {VERSION}")
+        console.print(
+            f"[bold cyan]lfit[/bold cyan] version: [green]{VERSION}[/green]")
         raise typer.Exit()
-    
 
-@app.callback()
-def version(
-    version: bool = typer.Option(
-        None,
-        "--version", "-V",
-        callback=version_callback,
-        is_eager=True,
-        help="Show Version",
-    )
-):
-    pass
 
 @app.callback()
 def main(
@@ -51,55 +52,75 @@ def main(
         is_eager=True,
         help="Show Version",
     ),
-    verbose: int = typer.Option(
-        0,
-        "--verbose", "-v",
-        count=True,
-        help="Increase verbosity (-v, -vv)"
-    )
 ):
-    # setup_logging(verbose)
-    if verbose:
-        typer.echo(f"Verbosity level: {verbose}")
+    """
+    Main entry point for lfit. 
+    Use --help to see available commands.
+    """
+    pass
 
 
 @app.command()
-def build_index(path: str = "."):
-    """
-    To build index
-    """
+def build_index(
+    path: str = typer.Argument(".", help="The root directory to index"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show internal logs")
+):
+    """Build the semantic index of your codebase"""
+    setup_logging(verbose)
     indexer = BuildIndex()
 
     indexer.build_index(root_path=path)
 
 
 @app.command()
-def search(query: str):
-    """
-    To search give query
-    """
+def search(
+    query: str = typer.Argument(..., help="Natural language search query"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show internal logs"),
+    limit: int = typer.Option(
+        3, "--limit", "-l", help="Number of results to show")
+):
+    """Search your codebase using semantic meaning."""
+    setup_logging(verbose)
     s = Retriever()
 
-    results = s.search(query)
+    results = s.search(query, limit)
 
-    print(f"Found in {results[0]['file_path']}, between {results[0]['start_line'], results[0]['end_line']} lines")
+    if not results:
+        return
+
+    console.print(
+        f"[bold]Found {len(results[:3])} matches for:[/bold] [italic]'{query}'[/italic]")
+
+    # Diplay results in the pretty table
+    table = Table(title="Semantic Search Results",
+                  show_header=True, header_style="bold magenta")
+    table.add_column("File Path", style="cyan", no_wrap=False)
+    table.add_column("Lines", style="green", justify="center")
+    table.add_column("Score", style="yellow", justify="right")
+
+    for r in results:
+        table.add_row(
+            r['file_path'],
+            f"{r['start_line']}-{r['end_line']}",
+            f"{r.get('score', 0.0):.2f}"
+        )
+
+    console.print(table)
 
 
 @app.command()
-def start():
-    """
-    To start server
-    """
-    logger.info("Server is starting. This process may take a few moments.")
+def start(verbose: bool = typer.Option(False, "--verbose", "-v")):
+    """Start the background embeddings server."""
+    setup_logging(verbose)
     start_server()
 
 
 @app.command()
-def stop():
-    """
-    To stop server
-    """
-    logger.info("Shuting down.")
+def stop(verbose: bool = typer.Option(False, "--verbose", "-v")):
+    """Stop the background embedding server."""
+    setup_logging(verbose)
     stop_server()
 
 
