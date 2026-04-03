@@ -1,4 +1,4 @@
-directories:
+# directories:
 __pycache__/
 models/
 .venv/
@@ -6,6 +6,6 @@ models/
 dist/
 
 
-files:
+# files:
 uv.lock
 *.pyc

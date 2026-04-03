@@ -4,7 +4,7 @@ build-backend = "hatchling.build"               # Backend to call
 
 [project]
 name = "lfit"                                   # PyPI / pip name
-version = "0.1.0"                               # Version
+version = "0.2.0"                               # Version
 description = "Local File Intelligence Tool"    
 requires-python = ">=3.10"                      # Python Version requirement
 dependencies = [
@@ -24,4 +24,4 @@ authors = [
 packages = ["src/lfit"]
 
 [project.scripts]
-lfit = "lfit.cli.main:app"                           # CLI entry point
+lfit = "lfit.cli.main:run_cli"                           # CLI entry point
