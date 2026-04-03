@@ -102,5 +102,49 @@ def stop():
     logger.info("Shuting down.")
     stop_server()
 
+
+@app.command()
+def status():
+    """View the current status of the background AI server."""
+    is_alive, pid, api_data = get_server_status()
+
+    table = Table(show_header=False, box=None)
+    table.add_column("Key", style="cyan")
+    table.add_column("Value")
+
+    status_text = "[bold green]● Active[/bold green]" if is_alive else "[bold red]○ Offline[/bold red]"
+    table.add_row("Background Process", status_text)
+
+    if is_alive:
+        table.add_row("Process ID", f"[white]{pid}[/white]")
+
+        if api_data:
+            m_status = "[green]Ready[/green]" if api_data['model_status'] == "ready" else "[yellow]Loading...[/yellow]"
+            table.add_row("Model Status", m_status)
+            table.add_row("Model Name", f"[dim]{api_data['model_name']}[/dim]")
+        else:
+            table.add_row("API Health", "[yellow]Initializing API...[/yellow]")
+
+    panel = Panel(
+        table,
+        title="[bold blue]LFIT System Status[/bold blue]",
+        border_style="blue" if is_alive else "red",
+        expand=False
+    )
+    console.print(panel)
+
+
+def run_cli():
+    start_time = time.time()
+    try:
+        app()
+    finally:
+        end_time = time.time()
+        duration = end_time - start_time
+
+        console.print(
+            f"\n[dim][white]✨ Finished in {duration:.2f}s[/white][/dim]")
+
+
 if __name__ == "__main__":
-    app()   
+    run_cli()
