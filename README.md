@@ -1,1 +1,1 @@
-##🚀 lfit: Local File Intelligence Tool (Semantic Code Search)
+## 🚀 lfit: Local File Intelligence Tool (Semantic Code Search)
