@@ -54,16 +54,34 @@ def start_server():
         kwargs = {"stdout": log_out, "stderr": log_out}
 
         if sys.platform == "win32":
-            # Detach process = 0x00000008
-            # Create new process = 0x00000200
-            kwargs["creationflags"] = 0x00000008 | 0x00000200
+            kwargs["creationflags"] = (
+                subprocess.DETACHED_PROCESS |
+                subprocess.CREATE_NEW_PROCESS_GROUP |
+                subprocess.CREATE_NO_WINDOW
+            )
         else:
-            kwargs["preexec_fn"] = os.setsid
+            kwargs["start_new_session"] = True
 
-        process = subprocess.Popen(
-            ["uvicorn", "lfit.api.embed_server:app", "--port", "8000"],
-            **kwargs
-        )
+        try:
+            process = subprocess.Popen(
+                ["uvicorn", "lfit.api.embed_server:app", "--port", "8000"],
+                **kwargs
+            )
+        except PermissionError:
+            logger.error("Permission denied when trying to start uvicorn process.")
+            console.print(
+                "[bold red]❌ Permission denied.[/bold red] "
+                "Try running with elevated privileges."
+            )
+            return
+        except OSError as e:
+            logger.error("OS error while starting server: %s", e)
+            console.print(f"[bold red]❌ System error:[/bold red] {e}")
+            return
+        except Exception as e:
+            logger.exception("Unexpected error while starting the embedding server.")
+            console.print(f"[bold red]❌ Unexpected error:[/bold red] {e}")
+            return
 
         with open(PID_FILE, "w") as f:
             f.write(str(process.pid))
@@ -107,17 +125,47 @@ def stop_server():
             with open(PID_FILE, "r") as f:
                 pid = int(f.read())
 
-            os.kill(pid, signal.SIGINT)
+            if sys.platform == "win32":
+                # On windows: os.kill with SIGINT is unrelaible.
+                # Use CTRL_C_EVENT
+                try:
+                    os.kill(pid, signal.CTRL_C_EVENT)
+                except (OSError, KeyboardInterrupt):
+                    pass
 
-            time.sleep(1)
+                time.sleep(1)    
+                try:
+                    os.kill(pid, 0)
+                    # Still running - force terminate
+                    subprocess.call(
+                        ["taskkill", "/F", "/PID", str(pid)],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                except OSError:
+                    pass
+            else:    
+                os.kill(pid, signal.SIGTERM)
+                time.sleep(1)
+                try:
+                    os.kill(pid, 0)
+                    os.kill(pid, signal.SIGKILL)
+                except OSError:
+                    pass
+
             if os.path.exists(PID_FILE):
                 os.remove(PID_FILE)
 
             console.print("🛑 [bold red]Server stopped.[/bold red]")
             logger.info("Server stopped by user.")
+        except FileNotFoundError:
+            console.print("[bold red]❌ PID file missing or invalid.[/bold red]")
+        except ValueError:
+            console.print("[bold red]❌ Corrupted PID file.[/bold red]")
+            if os.path.exists(PID_FILE):
+                os.remove(PID_FILE)
         except Exception as e:
             logger.error(f"Error stopping server: {e}")
-            console.print(
-                f"[bold red]❌ Failed to stop server PID {pid}.[/bold red]")
+            console.print(f"[bold red]❌ Failed to stop server PID {pid}.[/bold red]")
 
     logger.info("Server stopped")
