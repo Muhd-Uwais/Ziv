@@ -2,9 +2,8 @@
 __pycache__/
 models/
 .venv/
-.lfit/
+.ziv/
 dist/
-
 
 # files:
 uv.lock

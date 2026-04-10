@@ -2,24 +2,25 @@ import typer
 import logging
 import time
 from importlib.metadata import version
-from lfit.pipelines.index_builder import BuildIndex
-from lfit.core.retriever import Retriever
-from lfit.api.process_manager import start_server, stop_server, get_server_status
+from ziv.pipelines.index_builder import BuildIndex
+from ziv.pipelines.retriever import Retriever
+from ziv.api.process_manager import start_server, stop_server, get_server_status
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 from rich.panel import Panel
+from rich import box
 
 
 app = typer.Typer(
     context_settings={"help_option_names": ["--help", "-h"]},
     add_completion=False,
-    help="🚀 lfit: Local File Intelligence Tool (Semantic Code Search)",
+    help="🚀 Ziv: Local File Intelligence Tool (Semantic Code Search)",
 )
 console = Console()
 
 try:
-    VERSION = version("lfit")
+    VERSION = version("ziv")
 except Exception:
     VERSION = "0.1.0-dev"
 
@@ -39,7 +40,7 @@ def setup_logging(verbose: bool):
 def version_callback(value: bool):
     if value:
         console.print(
-            f"[bold cyan]lfit[/bold cyan] version: [green]{VERSION}[/green]")
+            f"[bold cyan]ziv[/bold cyan] version: [green]{VERSION}[/green]")
         raise typer.Exit()
 
 
@@ -54,7 +55,7 @@ def main(
     ),
 ):
     """
-    Main entry point for lfit. 
+    Main entry point for ziv. 
     Use --help to see available commands.
     """
     pass
@@ -84,27 +85,47 @@ def search(
     """Search your codebase using semantic meaning."""
     setup_logging(verbose)
     s = Retriever()
-
     results = s.search(query, limit)
 
+    console.print()
+
     if not results:
+        console.print(Panel(
+            "[yellow]No results found.[/yellow]\n\n"
+            "[dim]Try rephrasing your query or run [cyan]ziv build-index[/cyan] "
+            "to refresh the index.[/dim]",
+            title="[bold]🔍 Search Results[/bold]",
+            border_style="yellow",
+            padding=(1, 2),
+        ))
         return
 
     console.print(
-        f"[bold]Found {len(results[:3])} matches for:[/bold] [italic]'{query}'[/italic]")
+        f"[bold]🔍 Query:[/bold] [italic cyan]\"{query}\"[/italic cyan]"
+        f" [dim]— {len(results)} result{'s' if len(results) != 1 else ''} found[/dim]"
+    )
+    console.print()
 
-    # Diplay results in the pretty table
-    table = Table(title="Semantic Search Results",
-                  show_header=True, header_style="bold magenta")
-    table.add_column("File Path", style="cyan", no_wrap=False)
-    table.add_column("Lines", style="green", justify="center")
-    table.add_column("Score", style="yellow", justify="right")
+    table = Table(
+        show_header=True,
+        header_style="bold dim",
+        box=box.ROUNDED,
+        style="honeydew2",
+        padding=(0, 2),
+    )
 
-    for r in results:
+    table.add_column("#", style="dim", width=3)
+    table.add_column("File", style="cyan", no_wrap=False)
+    table.add_column("Score", style="yellow", justify="right", width=7)
+
+    for i, r in enumerate(results, 1):
+        score = r.get("score", 0.0)
+        file_path = r["file_path"]
+
         table.add_row(
-            r['file_path'],
-            f"{r['start_line']}-{r['end_line']}",
-            f"{r.get('score', 0.0):.2f}"
+            str(i),
+            file_path,
+            f"{score:.3f}",
         )
 
     console.print(table)
@@ -140,7 +161,7 @@ def status():
         table.add_row("Process ID", f"[white]{pid}[/white]")
 
         if api_data:
-            m_status = "[green]Ready[/green]" if api_data['model_status'] == "ready" else "[yellow]Loading...[/yellow]"
+            m_status = "[green]Ready[/green]" if api_data['model_status'] == "Ready" else "[yellow]Loading...[/yellow]"
             table.add_row("Model Status", m_status)
             table.add_row("Model Name", f"[dim]{api_data['model_name']}[/dim]")
         else:
@@ -148,7 +169,7 @@ def status():
 
     panel = Panel(
         table,
-        title="[bold blue]LFIT System Status[/bold blue]",
+        title="[bold blue]Ziv System Status[/bold blue]",
         border_style="blue" if is_alive else "red",
         expand=False
     )

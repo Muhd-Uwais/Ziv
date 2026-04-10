@@ -11,8 +11,8 @@ from rich.console import Console
 logger = logging.getLogger(__name__)
 console = Console()
 
-PID_FILE = ".lfit/server.pid"
-LOG_FILE = ".lfit/server.log"
+PID_FILE = ".ziv/server.pid"
+LOG_FILE = ".ziv/server.log"
 SERVER_URL = "http://127.0.0.1:8000"
 
 
@@ -38,7 +38,7 @@ def get_server_status():
 
 
 def start_server():
-    os.makedirs(".lfit", exist_ok=True)
+    os.makedirs(".ziv", exist_ok=True)
     is_alive, pid, _ = get_server_status()
 
     if is_alive:
@@ -64,7 +64,7 @@ def start_server():
 
         try:
             process = subprocess.Popen(
-                ["uvicorn", "lfit.api.embed_server:app", "--port", "8000"],
+                ["uvicorn", "ziv.api.embed_server:app", "--port", "8000"],
                 **kwargs
             )
         except PermissionError:
@@ -88,7 +88,7 @@ def start_server():
 
         # Waiting loop
         start_time = time.time()
-        max_time = 200
+        max_time = 30
         while (time.time() - start_time) < max_time:
 
             if process.poll() is not None:
@@ -103,7 +103,7 @@ def start_server():
 
             # 2. Check if API is ready
             alive_now, _, api_data = get_server_status()
-            if api_data and api_data.get("model_status") == "ready":
+            if api_data and api_data.get("model_status") == "Ready":
                 console.print(
                     f"✅ [bold green]Server ready![/bold green] [white](Took {time.time()-start_time:.1f}s)[/white]")
                 logger.info("Server ready!")

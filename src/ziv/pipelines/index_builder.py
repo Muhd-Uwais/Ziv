@@ -22,16 +22,15 @@ class BuildIndex:
             return response.status_code == 200
         except:
             return False
-        
+
     def load_cache(self, cache_path):
         if not os.path.exists(cache_path):
             return {}
 
         with open(cache_path, "r") as f:
-            return json.load(f)    
+            return json.load(f)
 
-
-    def build_index(self, root_path, output_dir=".lfit", extensions={".py"}):
+    def build_index(self, root_path, output_dir=".ziv", extensions={".py"}):
         with console.status("[bold green]Building your codebase index...", spinner="dots") as status:
             status.update("[bold blue]Loading files...")
             logger.info(f"Scanning directory: {root_path}")
@@ -79,23 +78,25 @@ class BuildIndex:
                     console.print(
                         f"\n[bold red]❌ Failed to generate embeddings:[/bold red] {e}")
                     return
-                
+
                 # Save new embeddings into chunk cache
                 for chunk, emb in zip(new_chunks, new_embeddings):
                     chunk_cache[chunk["id"]] = emb
             else:
-                console.print("[dim]No new chunks to embed — using cache.[/dim]")
+                console.print(
+                    "[dim]No new chunks to embed — using cache.[/dim]")
 
             final_embeddings = []
             metadata = []
             for chunk in all_chunks:
                 if chunk["id"] not in chunk_cache:
-                    logger.warning("Missing embedding for chunk %s, skipping", chunk["id"])
+                    logger.warning(
+                        "Missing embedding for chunk %s, skipping", chunk["id"])
                     continue
                 final_embeddings.append(chunk_cache[chunk["id"]])
                 metadata.append(
                     {
-                        "id": chunk['id'], 
+                        "id": chunk['id'],
                         "file_path": chunk["file_path"],
                         "start_line": chunk["start_line"],
                         "end_line": chunk["end_line"],

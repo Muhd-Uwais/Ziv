@@ -14,7 +14,7 @@ Owns the three operations every retrieval workflow needs:
 Scores therefore lie in ``[0.0, 1.0]`` for well-formed inputs; callers may
 rely on that invariant.
 
-All path arguments default to ``OUTPUT_DIR`` (``.lfit/``), the only directory
+All path arguments default to ``OUTPUT_DIR`` (``.ziv/``), the only directory
 lift writes to at runtime.
 """
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # paths imports from one place rather than scattering string literals.
 INDEX_FILENAME = "index.faiss"
 ID_MAP_FILENAME = "id_map.json"
-OUTPUT_DIR = ".lfit"
+OUTPUT_DIR = ".ziv"
 
 
 # ---------------------------------------------------------------------------
@@ -127,11 +127,11 @@ def load(
 
     if not index_path.exists():
         raise FileNotFoundError(
-            f"No FAISS index found at '{index_path}'. Run `lfit build-index` first."
+            f"No FAISS index found at '{index_path}'. Run `ziv build-index` first."
         )
     if not id_map_path.exists():
         raise FileNotFoundError(
-            f"No ID map found at '{id_map_path}'. Run `lfit build-index` first."
+            f"No ID map found at '{id_map_path}'. Run `ziv build-index` first."
         )
 
     # FAISS I/O functions expect a plain string, not a Path object.

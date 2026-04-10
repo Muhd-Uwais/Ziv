@@ -1,1 +1,1 @@
-## 🚀 lfit: Local File Intelligence Tool (Semantic Code Search)
+## 🚀 ziv: Local File Intelligence Tool (Semantic Code Search)

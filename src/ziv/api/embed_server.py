@@ -1,0 +1,97 @@
+from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from .embedder import LightEmbeddder
+from pydantic import BaseModel
+from typing import List, Optional
+import os
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+MODEL_NAME = "embedder-fast-onnx"
+MODEL_DIR = os.path.join(os.getcwd(), ".ziv/models", MODEL_NAME) 
+MAX_BATCH_SIZE = 64
+
+
+class ModelContainer:
+    def __init__(self):
+        self.model: Optional[LightEmbeddder] = None
+        self.status = "initializing"
+
+    def load(self):
+        try:
+            logger.info(f"Loading model from {MODEL_DIR}")
+            self.model = LightEmbeddder(MODEL_DIR)
+            self.status = "Ready"
+            logger.info("Model ready")
+        except Exception as e:
+            self.status = f"error: {str(e)}"
+            raise e
+
+
+# --- INITIALIZATION ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    container.load()
+    yield
+    container.model = None
+
+container = ModelContainer()
+app = FastAPI(lifespan=lifespan)
+
+
+# --- SCHEMAS ---
+class Chunk(BaseModel):
+    id: str
+    file_path: str
+    start_line: int
+    end_line: int
+    content: str
+
+
+class QueryModel(BaseModel):
+    query: str
+
+
+# --- ENDPOINTS ---
+@app.post("/encode-chunks")
+def encode_chunks(chunks: List[Chunk]):
+
+    if container.status != "Ready":
+        raise HTTPException(503, detail=f"Model not ready: {container.status}")
+
+    if len(chunks) > MAX_BATCH_SIZE:
+        raise HTTPException(
+            422,
+            detail=f"Batch too large: {len(chunks)} > max {MAX_BATCH_SIZE}"
+        )    
+
+    texts = [chunk.content for chunk in chunks]
+
+    embeddings = container.model.encode(texts)
+
+    return embeddings.tolist()
+
+
+@app.post("/encode-query")
+def encode_query(request: QueryModel):
+
+    if container.status != "Ready":
+        raise HTTPException(503, detail=f"Model not ready: {container.status}")
+
+    if not request.query:
+        raise HTTPException(422, detail="texts list cannot be empty")
+
+    embeddings = container.model.encode(request.query)
+
+    return embeddings.tolist()
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "model_status": container.status,
+        "model_name": MODEL_NAME
+    }

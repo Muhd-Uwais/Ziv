@@ -11,12 +11,12 @@ console = Console()
 
 
 class Retriever:
-    def __init__(self, index_path=".lfit"):
+    def __init__(self, index_path=".ziv"):
         self.api_link = "http://localhost:8000/"
 
         if not is_index_built(index_path):
             console.print(
-                "[bold red]❌ No index found.[/bold red] Run [cyan]lfit build-index[/cyan] first."
+                "[bold red]❌ No index found.[/bold red] Run [cyan]ziv build-index[/cyan] first."
             )
             raise FileNotFoundError(f"No FAISS index in '{index_path}'")
 
@@ -47,7 +47,7 @@ class Retriever:
                 logger.error("Search failed: server unreachable")
                 console.print(
                     "\n[bold red]❌ Error:[/bold red] Embedding server is not running. "
-                    "Start it with [cyan]lfit start[/cyan]."
+                    "Start it with [cyan]ziv start[/cyan]."
                 )
                 return []
 

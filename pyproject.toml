@@ -3,25 +3,27 @@ requires = ["hatchling"]                        # Build-time deps
 build-backend = "hatchling.build"               # Backend to call       
 
 [project]
-name = "lfit"                                   # PyPI / pip name
+name = "ziv"                                   # PyPI / pip name
 version = "0.2.0"                               # Version
 description = "Local File Intelligence Tool"    
 requires-python = ">=3.10"                      # Python Version requirement
 dependencies = [
     "typer>=0.24.0",                            # Runtime deps
-    "sentence-transformers",
     "faiss-cpu",
     "numpy",
     "fastapi",
     "uvicorn",
     "requests",
+    "tokenizers",
+    "onnx",
+    "onnxruntime==1.19.2",
 ]
 authors = [
     { name = "Muhd Uwais" }
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/lfit"]
+packages = ["src/ziv"]
 
 [project.scripts]
-lfit = "lfit.cli.main:run_cli"                           # CLI entry point
+ziv = "ziv.cli.main:run_cli"                           # CLI entry point
