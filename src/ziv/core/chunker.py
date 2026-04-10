@@ -1,5 +1,5 @@
 """
-chunker.py — Sliding-window file content chunker for the lift indexing pipeline.
+chunker.py — Sliding-window file content chunker for the ziv indexing pipeline.
 
 This module splits source file content into overlapping line-based chunks
 suitable for embedding, semantic search, and retrieval-augmented workflows.
@@ -8,7 +8,7 @@ consumers can detect and skip unchanged chunks on re-indexing.
 
 Typical usage::
 
-    from lift.core.chunker import chunk_file, chunk_directory
+    from ziv.core.chunker import chunk_file, chunk_directory
 
     # Chunk a single file
     chunks = chunk_file("src/app.py", source_code, chunk_size=40, overlap=10)

@@ -1,5 +1,5 @@
 """
-file_loader.py — Recursive source-file discovery for the lift pipeline.
+file_loader.py — Recursive source-file discovery for the ziv pipeline.
 
 Walks a directory tree, prunes paths irrelevant to user source code
 (virtual environments, caches, build artefacts, dependency trees), and

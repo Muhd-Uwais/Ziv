@@ -44,7 +44,9 @@ class BuildIndex:
                 console.print("[bold green]Nothing to built!")
                 return
 
-            chunk_cache_path = os.path.join(output_dir, "chunk_cache.json")
+            os.makedirs(os.path.join(output_dir, "cache"))
+            chunk_cache_path = os.path.join(
+                output_dir, "cache", "chunk_cache.json")
             chunk_cache = self.load_cache(chunk_cache_path)
 
             new_chunks = []
@@ -73,6 +75,7 @@ class BuildIndex:
                             "\n[bold red]❌ Error:[/bold red] Failed to connect to server. Is background embeddings server running?")
                         return
                 except Exception as e:
+                    status.stop()
                     logger.exception(
                         "Unexpected error during embedding generation")
                     console.print(

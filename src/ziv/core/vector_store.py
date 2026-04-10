@@ -1,4 +1,4 @@
-"""vector_store.py — FAISS index lifecycle management for the lift search pipeline.
+"""vector_store.py — FAISS index lifecycle management for the ziv search pipeline.
 
 Owns the three operations every retrieval workflow needs:
 
@@ -15,7 +15,7 @@ Scores therefore lie in ``[0.0, 1.0]`` for well-formed inputs; callers may
 rely on that invariant.
 
 All path arguments default to ``OUTPUT_DIR`` (``.ziv/``), the only directory
-lift writes to at runtime.
+ziv writes to at runtime.
 """
 
 import json

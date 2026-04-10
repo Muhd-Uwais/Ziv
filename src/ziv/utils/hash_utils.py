@@ -1,4 +1,4 @@
-"""hash_utils.py — Deterministic content hashing for the lift pipeline.
+"""hash_utils.py — Deterministic content hashing for the ziv pipeline.
 
 Provides a single stable hash function used across the pipeline wherever a
 short, deterministic identifier must be derived from text content — primarily

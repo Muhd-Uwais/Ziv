@@ -10,8 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "embedder-fast-onnx"
-MODEL_DIR = os.path.join(os.getcwd(), ".ziv/models", MODEL_NAME) 
-MAX_BATCH_SIZE = 64
+MODEL_DIR = os.path.join(os.getcwd(), ".ziv/models", MODEL_NAME)
 
 
 class ModelContainer:
@@ -60,12 +59,6 @@ def encode_chunks(chunks: List[Chunk]):
 
     if container.status != "Ready":
         raise HTTPException(503, detail=f"Model not ready: {container.status}")
-
-    if len(chunks) > MAX_BATCH_SIZE:
-        raise HTTPException(
-            422,
-            detail=f"Batch too large: {len(chunks)} > max {MAX_BATCH_SIZE}"
-        )    
 
     texts = [chunk.content for chunk in chunks]
 

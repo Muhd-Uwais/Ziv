@@ -79,9 +79,8 @@ class LightEmbeddder:
         # This makes the class work for any model without code changes
 
         logger.info(
-            f"LightEmbedder loaded: pool_mean={self.pool_mean}, "
-            f"normalize={self.do_normalize}, "
-            f"token_type_ids={self.use_token_type_ids}"
+            "LightEmbedder loaded: pool_mean=%s, normalize=%s, token_type_ids=%s",
+            self.pool_mean, self.do_normalize, self.use_token_type_ids
         )
 
     # Tokenize a batch of sentences
@@ -145,9 +144,9 @@ class LightEmbeddder:
         else:
             embeddings = self._mean_pool(
                 token_embeddings, inputs["attention_mask"])
-            
+
         if self.do_normalize:
             embeddings = self._l2_normalize(embeddings)
 
         return embeddings
-        # shape: (num_sentences, hidden_dim)    
+        # shape: (num_sentences, hidden_dim)

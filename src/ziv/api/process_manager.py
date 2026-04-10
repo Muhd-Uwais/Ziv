@@ -68,7 +68,8 @@ def start_server():
                 **kwargs
             )
         except PermissionError:
-            logger.error("Permission denied when trying to start uvicorn process.")
+            logger.error(
+                "Permission denied when trying to start uvicorn process.")
             console.print(
                 "[bold red]❌ Permission denied.[/bold red] "
                 "Try running with elevated privileges."
@@ -79,7 +80,8 @@ def start_server():
             console.print(f"[bold red]❌ System error:[/bold red] {e}")
             return
         except Exception as e:
-            logger.exception("Unexpected error while starting the embedding server.")
+            logger.exception(
+                "Unexpected error while starting the embedding server.")
             console.print(f"[bold red]❌ Unexpected error:[/bold red] {e}")
             return
 
@@ -133,7 +135,7 @@ def stop_server():
                 except (OSError, KeyboardInterrupt):
                     pass
 
-                time.sleep(1)    
+                time.sleep(1)
                 try:
                     os.kill(pid, 0)
                     # Still running - force terminate
@@ -144,7 +146,7 @@ def stop_server():
                     )
                 except OSError:
                     pass
-            else:    
+            else:
                 os.kill(pid, signal.SIGTERM)
                 time.sleep(1)
                 try:
@@ -159,13 +161,15 @@ def stop_server():
             console.print("🛑 [bold red]Server stopped.[/bold red]")
             logger.info("Server stopped by user.")
         except FileNotFoundError:
-            console.print("[bold red]❌ PID file missing or invalid.[/bold red]")
+            console.print(
+                "[bold red]❌ PID file missing or invalid.[/bold red]")
         except ValueError:
             console.print("[bold red]❌ Corrupted PID file.[/bold red]")
             if os.path.exists(PID_FILE):
                 os.remove(PID_FILE)
         except Exception as e:
             logger.error(f"Error stopping server: {e}")
-            console.print(f"[bold red]❌ Failed to stop server PID {pid}.[/bold red]")
+            console.print(
+                f"[bold red]❌ Failed to stop server PID {pid}.[/bold red]")
 
     logger.info("Server stopped")
