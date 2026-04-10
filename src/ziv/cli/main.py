@@ -5,10 +5,12 @@ from importlib.metadata import version
 from ziv.pipelines.index_builder import BuildIndex
 from ziv.pipelines.retriever import Retriever
 from ziv.api.process_manager import start_server, stop_server, get_server_status
+from ziv.core.downloader import download_model, _is_model_installed
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 from rich.panel import Panel
+from rich.text import Text
 from rich import box
 
 
@@ -132,9 +134,54 @@ def search(
 
 
 @app.command()
+def init(
+    model: str = typer.Option(
+        "fast",
+        "--model", "-m",
+        help="Model variant to download. Available: [cyan]fast[/cyan]",
+        show_default=True,
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-v",
+        help="Show detailed logs during download.",
+    ),
+):
+    """
+    Download the embedding model to local storage.
+
+    Run this once before using [bold cyan]ziv start[/bold cyan].
+    The model is stored in [dim].ziv/models/[/dim].
+    """
+    setup_logging(verbose)
+    if model == "fast":
+        download_model()
+    else:
+        console.print(
+            f"[bold red]✖  Unknown model:[/bold red] '{model}'. Available: fast")
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def start(verbose: bool = typer.Option(False, "--verbose", "-v")):
     """Start the background embeddings server."""
     setup_logging(verbose)
+
+    if not _is_model_installed():
+        console.print(
+            Panel(
+                Text.assemble(
+                    ("✖  Model not found\n\n", "bold red"),
+                    ("Run ", "white"),
+                    ("ziv init", "bold cyan"),
+                    (" to download the model before starting the server.", "white"),
+                ),
+                border_style="red",
+                title="[bold red]ziv[/bold red]",
+                expand=False,
+            )
+        )
+        raise typer.Exit(code=1)
     start_server()
 
 
@@ -169,7 +216,7 @@ def status():
 
     panel = Panel(
         table,
-        title="[bold blue]Ziv System Status[/bold blue]",
+        title="[bold blue]ziv api status[/bold blue]",
         border_style="blue" if is_alive else "red",
         expand=False
     )
