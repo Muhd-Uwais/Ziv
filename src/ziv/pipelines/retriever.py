@@ -49,7 +49,7 @@ class Retriever:
                     "\n[bold red]❌ Error:[/bold red] Embedding server is not running. "
                     "Start it with [cyan]ziv start[/cyan]."
                 )
-                return []
+                return -1
 
             try:
                 response = requests.post(
