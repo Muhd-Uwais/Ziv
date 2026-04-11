@@ -44,7 +44,7 @@ class BuildIndex:
                 console.print("[bold green]Nothing to built!")
                 return
 
-            os.makedirs(os.path.join(output_dir, "cache"))
+            os.makedirs(os.path.join(output_dir, "cache"), exist_ok=True)
             chunk_cache_path = os.path.join(
                 output_dir, "cache", "chunk_cache.json")
             chunk_cache = self.load_cache(chunk_cache_path)
