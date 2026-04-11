@@ -91,14 +91,18 @@ def search(
 
     console.print()
 
+    if results == -1:
+        return
+
     if not results:
         console.print(Panel(
             "[yellow]No results found.[/yellow]\n\n"
             "[dim]Try rephrasing your query or run [cyan]ziv build-index[/cyan] "
             "to refresh the index.[/dim]",
-            title="[bold]🔍 Search Results[/bold]",
+            title="[bold]ziv[/bold]",
             border_style="yellow",
             padding=(1, 2),
+            expand=False
         ))
         return
 
@@ -201,22 +205,27 @@ def status():
     table.add_column("Key", style="cyan")
     table.add_column("Value")
 
-    status_text = "[bold green]● Active[/bold green]" if is_alive else "[bold red]○ Offline[/bold red]"
-    table.add_row("Background Process", status_text)
+    status_text = (
+        "[bold green]● running[/bold green]"
+        if is_alive else
+        "[bold red]○ offline[/bold red]\n"
+        "[dim]Run [bold cyan]ziv start[/bold cyan] to launch the server.[/dim]"
+    )
+    table.add_row("Process", status_text)
 
     if is_alive:
-        table.add_row("Process ID", f"[white]{pid}[/white]")
+        table.add_row("PID", f"[white]{pid}[/white]")
 
         if api_data:
-            m_status = "[green]Ready[/green]" if api_data['model_status'] == "Ready" else "[yellow]Loading...[/yellow]"
+            m_status = "[bold green]✔ ready[/bold green]" if api_data['model_status'] == "Ready" else "[yellow]⠿ loading[/yellow]"
             table.add_row("Model Status", m_status)
-            table.add_row("Model Name", f"[dim]{api_data['model_name']}[/dim]")
+            table.add_row("Model", f"[dim]{api_data['model_name']}[/dim]")
         else:
-            table.add_row("API Health", "[yellow]Initializing API...[/yellow]")
+            table.add_row("API Health", "[yellow]⠿ initializing[/yellow]")
 
     panel = Panel(
         table,
-        title="[bold blue]ziv api status[/bold blue]",
+        title="[bold cyan]ziv[/bold cyan] [dim]·[/dim] [bold white]server status[/bold white]",
         border_style="blue" if is_alive else "red",
         expand=False
     )
