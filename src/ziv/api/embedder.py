@@ -63,10 +63,18 @@ class LightEmbeddder:
         onnx_path = os.path.join(model_dir, "model.onnx")
         if not os.path.exists(onnx_path):
             raise FileNotFoundError(f"model.onnx not found in {model_dir}")
+        
+        sess_options = ort.SessionOptions()
+        sess_options.enable_cpu_mem_arena = False
+        sess_options.enable_mem_pattern = False
+        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        sess_options.intra_op_num_threads = 3
+        sess_options.inter_op_num_threads = 1
 
         # Load the ONNX model into onnxruntime
         self.session = ort.InferenceSession(
             onnx_path,
+            sess_options=sess_options,
             providers=["CPUExecutionProvider"]
         )
         # InferenceSession loads and compiles the ONNX graph for the CPU
@@ -105,11 +113,11 @@ class LightEmbeddder:
 
     def _mean_pool(self, token_embeddings, attention_mask) -> np.ndarray:
 
-        mask = attention_mask[..., None].astype(np.float32)
-        # Expand mask from (batch, seq) → (batch, seq, 1)
-        # Broadcasting against (batch, seq, hidden_dim) zeros out padding positions
+        mask = attention_mask[:, :, np.newaxis].astype(np.float32)
 
-        summed = (token_embeddings * mask).sum(axis=1)
+        token_embeddings *= mask    # in-place, no copy
+
+        summed = token_embeddings.sum(axis=1)
         # Sum real token vectors per sentence -> (batch, hidden_dim)
 
         counts = mask.sum(axis=1).clip(min=1e-9)
@@ -120,7 +128,8 @@ class LightEmbeddder:
     def _l2_normalize(self, embeddings) -> np.ndarray:
         norms = np.linalg.norm(
             embeddings, axis=1, keepdims=True).clip(min=1e-12)
-        return embeddings / norms
+        embeddings /= norms
+        return embeddings
 
     def encode(self, texts: Union[str, list[str]]) -> np.ndarray:
         if isinstance(texts, str):
