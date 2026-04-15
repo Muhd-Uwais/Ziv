@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from contextlib import asynccontextmanager
 from .embedder import LightEmbeddder
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Any, Optional
 import os
 import logging
 
@@ -41,28 +41,18 @@ app = FastAPI(lifespan=lifespan)
 
 
 # --- SCHEMAS ---
-class Chunk(BaseModel):
-    id: str
-    file_path: str
-    start_line: int
-    end_line: int
-    content: str
-
-
 class QueryModel(BaseModel):
     query: str
 
 
 # --- ENDPOINTS ---
 @app.post("/encode-chunks")
-def encode_chunks(chunks: List[Chunk]):
+def encode_chunks(chunks: list[Any] = Body(...)):
 
     if container.status != "Ready":
         raise HTTPException(503, detail=f"Model not ready: {container.status}")
 
-    texts = [chunk.content for chunk in chunks]
-
-    embeddings = container.model.encode(texts)
+    embeddings = container.model.encode(chunks)
 
     return embeddings.tolist()
 

@@ -64,7 +64,7 @@ def build_and_save(
             surfacing as a silent ``None`` return in ``search`` rather than a
             loud failure here.
     """
-    if not embeddings:
+    if embeddings is None or embeddings.shape[0] == 0:
         raise ValueError("Cannot build index from empty embeddings list")
 
     # Enforce alignment before doing any work — a mismatch here means the
@@ -75,7 +75,7 @@ def build_and_save(
             f"(got {len(embeddings)} vs {len(metadata)})"
         )
 
-    vectors = np.array(embeddings, dtype=np.float32)
+    vectors = np.asarray(embeddings, dtype=np.float32)
     dim = vectors.shape[1]
 
     # Normalise before insertion — idempotent on unit vectors, protective

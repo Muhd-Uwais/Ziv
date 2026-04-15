@@ -66,14 +66,21 @@ def main(
 @app.command()
 def build_index(
     path: str = typer.Argument(".", help="The root directory to index"),
+    batch_size: int = typer.Option(
+        128, "--batch-size", "-b", help="Batch size for embedding [32, 64, 128]"
+    ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Show internal logs")
+        False, "--verbose", "-v", help="Show internal logs"
+    ),
 ):
-    """Build the semantic index of your codebase"""
+    """Build the semantic index of your codebase."""
     setup_logging(verbose)
-    indexer = BuildIndex()
 
-    indexer.build_index(root_path=path)
+    if batch_size not in (32, 64, 128):
+        raise typer.BadParameter("batch_size must be 32 or 64", param_hint="--batch-size")
+
+    indexer = BuildIndex()
+    indexer.build_index(root_path=path, batch_size=batch_size)   
 
 
 @app.command()
