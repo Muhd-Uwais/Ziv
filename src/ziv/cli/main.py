@@ -77,10 +77,11 @@ def build_index(
     setup_logging(verbose)
 
     if batch_size not in (32, 64, 128):
-        raise typer.BadParameter("batch_size must be 32 or 64", param_hint="--batch-size")
+        raise typer.BadParameter(
+            "batch_size must be 32 or 64", param_hint="--batch-size")
 
     indexer = BuildIndex()
-    indexer.build_index(root_path=path, batch_size=batch_size)   
+    indexer.build_index(root_path=path, batch_size=batch_size)
 
 
 @app.command()

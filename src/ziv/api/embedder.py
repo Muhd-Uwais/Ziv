@@ -22,7 +22,8 @@ class LightEmbeddder:
         self.max_length = max_length
         self._load(model_dir, max_length)
         self._run_opts = ort.RunOptions()
-        self._run_opts.add_run_config_entry("memory.enable_memory_arena_shrinkage", "cpu:0")
+        self._run_opts.add_run_config_entry(
+            "memory.enable_memory_arena_shrinkage", "cpu:0")
 
     def _load(self, model_dir: str, max_length: int):
 
@@ -66,7 +67,7 @@ class LightEmbeddder:
         onnx_path = os.path.join(model_dir, "model.onnx")
         if not os.path.exists(onnx_path):
             raise FileNotFoundError(f"model.onnx not found in {model_dir}")
-        
+
         sess_options = ort.SessionOptions()
         sess_options.enable_cpu_mem_arena = True
         sess_options.enable_mem_pattern = True
@@ -116,7 +117,7 @@ class LightEmbeddder:
 
     def _mean_pool(self, token_embeddings, attention_mask) -> np.ndarray:
 
-        mask = attention_mask.astype(np.float32)[:, :, np.newaxis] 
+        mask = attention_mask.astype(np.float32)[:, :, np.newaxis]
 
         summed = (token_embeddings * mask).sum(axis=1)
 
