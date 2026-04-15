@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import numpy as np
+import psutil
 import onnxruntime as ort
 from tokenizers import Tokenizer
 from typing import Union
@@ -20,6 +21,8 @@ class LightEmbeddder:
         self.model_dir = model_dir
         self.max_length = max_length
         self._load(model_dir, max_length)
+        self._run_opts = ort.RunOptions()
+        self._run_opts.add_run_config_entry("memory.enable_memory_arena_shrinkage", "cpu:0")
 
     def _load(self, model_dir: str, max_length: int):
 
@@ -65,10 +68,10 @@ class LightEmbeddder:
             raise FileNotFoundError(f"model.onnx not found in {model_dir}")
         
         sess_options = ort.SessionOptions()
-        sess_options.enable_cpu_mem_arena = False
-        sess_options.enable_mem_pattern = False
+        sess_options.enable_cpu_mem_arena = True
+        sess_options.enable_mem_pattern = True
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        sess_options.intra_op_num_threads = 3
+        sess_options.intra_op_num_threads = psutil.cpu_count(logical=False)
         sess_options.inter_op_num_threads = 1
 
         # Load the ONNX model into onnxruntime
@@ -113,11 +116,10 @@ class LightEmbeddder:
 
     def _mean_pool(self, token_embeddings, attention_mask) -> np.ndarray:
 
-        mask = attention_mask[:, :, np.newaxis].astype(np.float32)
+        mask = attention_mask.astype(np.float32)[:, :, np.newaxis] 
 
-        token_embeddings *= mask    # in-place, no copy
+        summed = (token_embeddings * mask).sum(axis=1)
 
-        summed = token_embeddings.sum(axis=1)
         # Sum real token vectors per sentence -> (batch, hidden_dim)
 
         counts = mask.sum(axis=1).clip(min=1e-9)
@@ -137,7 +139,7 @@ class LightEmbeddder:
 
         inputs = self._tokenize(texts)
 
-        outputs = self.session.run(None, inputs)
+        outputs = self.session.run(None, inputs, self._run_opts)
         # Run the ONNX graph
         # None = return all outputs
         # outputs[0] = last_hidden_state: (batch, seq_len, hidden_dim)
