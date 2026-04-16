@@ -1,14 +1,14 @@
 [build-system]
-requires = ["hatchling"]                        
-build-backend = "hatchling.build"                    
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "ziv"                                   
-version = "0.2.0"                               
-description = "Local File Intelligence Tool"    
-requires-python = ">=3.10"                      
+name = "ziv"
+version = "0.2.0"
+description = "Local File Intelligence Tool"
+requires-python = ">=3.10"
 dependencies = [
-    "typer~=0.24.0",                            
+    "typer~=0.24.0",
     "faiss-cpu~=1.13.2",
     "numpy~=2.2.6",
     "psutil~=7.2.2",
@@ -21,12 +21,14 @@ dependencies = [
     "onnx~=1.21.0",
     "onnxruntime==1.19.2",
 ]
-authors = [
-    { name = "Muhd Uwais" }
-]
+authors = [{ name = "Muhd Uwais" }]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ziv"]
+include = ["ziv/cli/templates/**/*"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
 
 [project.scripts]
-ziv = "ziv.cli.main:run_cli"                           
+ziv = "ziv.cli.main:run_cli"

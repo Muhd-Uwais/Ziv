@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ziv Feedback</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-full: 9999px;
+      --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      --font-body: 'Geist', 'Inter', system-ui, sans-serif;
+      --font-mono: 'Geist Mono', 'Fira Code', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0d0d0d;
+      --surface: #131313;
+      --surface-2: #1a1a1a;
+      --surface-3: #222222;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(255, 255, 255, 0.2);
+      --text: #e8e8e6;
+      --text-muted: #888885;
+      --text-faint: #555552;
+      --accent: #4f98a3;
+      --accent-glow: rgba(79, 152, 163, 0.15);
+      --accent-hover: #3a8290;
+      --error: #d16374;
+      --success: #6daa45;
+      --tag-bg: rgba(79, 152, 163, 0.12);
+      --tag-border: rgba(79, 152, 163, 0.3);
+    }
+
+    [data-theme="light"] {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --surface-2: #f3f0ec;
+      --surface-3: #edeae5;
+      --border: rgba(0, 0, 0, 0.1);
+      --border-focus: rgba(0, 0, 0, 0.25);
+      --text: #1a1a1a;
+      --text-muted: #6b6b68;
+      --text-faint: #aaaaaa;
+      --accent: #01696f;
+      --accent-glow: rgba(1, 105, 111, 0.1);
+      --accent-hover: #0c4e54;
+      --error: #a12c7b;
+      --success: #437a22;
+      --tag-bg: rgba(1, 105, 111, 0.08);
+      --tag-border: rgba(1, 105, 111, 0.25);
+    }
+
+    /* ─── BASE ───────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      min-height: 100dvh;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-8) var(--space-4);
+      line-height: 1.6;
+    }
+
+    a,
+    button,
+    input,
+    textarea,
+    select {
+      transition: color var(--transition), background var(--transition),
+        border-color var(--transition), box-shadow var(--transition),
+        opacity var(--transition);
+      font-family: var(--font-body);
+    }
+
+    button {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────── */
+    .header {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-8);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .logo-text span {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .theme-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-btn:hover {
+      color: var(--text);
+      border-color: var(--border-focus);
+    }
+
+    /* ─── CARD ───────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    /* ─── TABS ───────────────────────────────────────────── */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      padding: var(--space-4) var(--space-5);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      background: transparent;
+      transition: color var(--transition), border-color var(--transition);
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-btn svg {
+      flex-shrink: 0;
+    }
+
+    /* ─── PANEL ──────────────────────────────────────────── */
+    .panel {
+      padding: var(--space-8);
+      display: none;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    .panel.active {
+      display: flex;
+    }
+
+    /* ─── SECTION HEAD ───────────────────────────────────── */
+    .panel-head {
+      margin-bottom: var(--space-2);
+    }
+
+    .panel-head h2 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: var(--space-1);
+    }
+
+    .panel-head p {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      max-width: 60ch;
+    }
+
+    /* ─── FORM FIELDS ────────────────────────────────────── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    label .required {
+      color: var(--error);
+      margin-left: 2px;
+    }
+
+    label .hint {
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+      margin-left: var(--space-2);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    textarea,
+    select {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-sm);
+      width: 100%;
+      resize: none;
+      outline: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-faint);
+    }
+
+    textarea.code-area {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      line-height: 1.7;
+      background: var(--surface-3);
+      border-color: var(--border);
+      min-height: 110px;
+    }
+
+    /* ─── RATING ─────────────────────────────────────────── */
+    .stars {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      padding: 2px;
+      cursor: pointer;
+      color: var(--text-faint);
+      transition: color var(--transition), transform var(--transition);
+    }
+
+    .star-btn:hover,
+    .star-btn.lit {
+      color: #e8a838;
+    }
+
+    .star-btn:hover {
+      transform: scale(1.15);
+    }
+
+    /* ─── FEEDBACK TYPE PILLS ────────────────────────────── */
+    .pill-group {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    .pill-btn {
+      padding: var(--space-2) var(--space-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      background: var(--surface-2);
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .pill-btn:hover {
+      border-color: var(--border-focus);
+      color: var(--text);
+    }
+
+    .pill-btn.active {
+      background: var(--tag-bg);
+      border-color: var(--tag-border);
+      color: var(--accent);
+    }
+
+    /* ─── TECH TAGS ──────────────────────────────────────── */
+    .tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      min-height: 48px;
+      cursor: text;
+    }
+
+    .tags-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--tag-bg);
+      border: 1px solid var(--tag-border);
+      color: var(--accent);
+      border-radius: var(--radius-full);
+      padding: 2px var(--space-3);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .tag-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.6;
+      padding: 0;
+      display: flex;
+      line-height: 1;
+    }
+
+    .tag-remove:hover {
+      opacity: 1;
+    }
+
+    .tag-input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: var(--text-xs);
+      min-width: 120px;
+      flex: 1;
+      padding: 2px var(--space-1);
+      font-family: var(--font-body);
+    }
+
+    .tag-input::placeholder {
+      color: var(--text-faint);
+    }
+
+    /* ─── SUGGESTIONS ────────────────────────────────────── */
+    .tag-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+    }
+
+    .sugg-btn {
+      padding: 3px var(--space-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-mono);
+    }
+
+    .sugg-btn:hover {
+      border-color: var(--tag-border);
+      color: var(--accent);
+    }
+
+    /* ─── TOGGLE ─────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-4);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .toggle-label {
+      font-size: var(--text-sm);
+      color: var(--text);
+    }
+
+    .toggle-desc {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      transition: transform var(--transition), background var(--transition);
+    }
+
+    .toggle input:checked+.toggle-track {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .toggle input:checked+.toggle-track::after {
+      transform: translateX(18px);
+      background: #fff;
+    }
+
+    /* ─── 2-COL ──────────────────────────────────────────── */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    @media (max-width: 520px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    .form-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-5) var(--space-8);
+      border-top: 1px solid var(--border);
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    .footer-note {
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+    }
+
+    .footer-note kbd {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--text-muted);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    .btn {
+      padding: var(--space-2) var(--space-5);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border-focus);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ─── SUCCESS STATE ──────────────────────────────────── */
+    .success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-16) var(--space-8);
+      gap: var(--space-4);
+    }
+
+    .success-screen.show {
+      display: flex;
+    }
+
+    .success-icon {
+      width: 52px;
+      height: 52px;
+      background: rgba(109, 170, 69, 0.1);
+      border: 1px solid rgba(109, 170, 69, 0.25);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--success);
+      margin-bottom: var(--space-2);
+    }
+
+    .success-screen h2 {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .success-screen p {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      max-width: 44ch;
+    }
+
+    .close-note {
+      margin-top: var(--space-4);
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+    }
+
+    /* ─── CHAR COUNT ─────────────────────────────────────── */
+    .field-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .char-count {
+      font-size: var(--text-xs);
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+    }
+
+    .char-count.warn {
+      color: var(--error);
+    }
+
+    /* ─── SEPARATOR ──────────────────────────────────────── */
+    .sep {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      color: var(--text-faint);
+      font-size: var(--text-xs);
+    }
+
+    .sep::before,
+    .sep::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── VERSION BADGE ──────────────────────────────────── */
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .version-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">ziv</div>
+      <span class="logo-text"><span>ziv</span> Feedback</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:var(--space-3)">
+      <div class="version-badge">
+        <span class="version-dot"></span>
+        <span id="ziv-version">v1.0.0</span>
+      </div>
+      <button class="theme-btn" id="theme-toggle" aria-label="Toggle theme">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- CARD -->
+  <div class="card" id="main-card">
+
+    <!-- TABS -->
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="feedback">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        Tool Feedback
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="query">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="16 18 22 12 16 6" />
+          <polyline points="8 6 2 12 8 18" />
+        </svg>
+        Query Report
+      </button>
+    </nav>
+
+    <!-- ══════════════ PANEL: TOOL FEEDBACK ══════════════ -->
+    <form id="form-feedback" class="panel active" novalidate>
+
+      <div class="panel-head">
+        <h2>How is ziv working for you?</h2>
+        <p>Share what's working, what's broken, or what you'd like to see next.</p>
+      </div>
+
+      <!-- Rating -->
+      <div class="field">
+        <label>Overall rating <span class="required">*</span></label>
+        <div class="stars" role="group" aria-label="Rating">
+          <button type="button" class="star-btn" data-val="1" aria-label="1 star">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+            </svg>
+          </button>
+          <button type="button" class="star-btn" data-val="2" aria-label="2 stars">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+            </svg>
+          </button>
+          <button type="button" class="star-btn" data-val="3" aria-label="3 stars">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+            </svg>
+          </button>
+          <button type="button" class="star-btn" data-val="4" aria-label="4 stars">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+            </svg>
+          </button>
+          <button type="button" class="star-btn" data-val="5" aria-label="5 stars">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+            </svg>
+          </button>
+        </div>
+        <input type="hidden" id="rating-val" name="rating" value="">
+      </div>
+
+      <!-- Feedback Type -->
+      <div class="field">
+        <label>Type <span class="required">*</span></label>
+        <div class="pill-group" role="group">
+          <button type="button" class="pill-btn" data-type="bug">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Bug
+          </button>
+          <button type="button" class="pill-btn" data-type="suggestion">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Suggestion
+          </button>
+          <button type="button" class="pill-btn" data-type="praise">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z" />
+              <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+            </svg>
+            Praise
+          </button>
+          <button type="button" class="pill-btn" data-type="question">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Question
+          </button>
+        </div>
+        <input type="hidden" id="feedback-type" name="type" value="">
+      </div>
+
+      <!-- Message -->
+      <div class="field">
+        <div class="field-meta">
+          <label for="feedback-msg">Message <span class="required">*</span></label>
+          <span class="char-count" id="msg-count">0 / 1000</span>
+        </div>
+        <textarea id="feedback-msg" name="message" rows="5"
+          placeholder="Describe your feedback in detail. What happened? What did you expect?"></textarea>
+      </div>
+
+      <!-- Email -->
+      <div class="field">
+        <label for="feedback-email">Email <span class="hint">— optional, if you want a reply</span></label>
+        <input type="email" id="feedback-email" name="email" placeholder="you@example.com">
+      </div>
+
+      <!-- DISCLAIMER -->
+      <p style="
+        font-size: var(--text-xs);
+        color: var(--text-faint);
+        line-height: 1.6;
+        padding-top: var(--space-2);
+        border-top: 1px solid var(--border);
+      ">
+        Your message and any details you share will be reviewed by the ziv team to improve the tool.
+        Email addresses are used only to reply to your feedback and are never shared.
+      </p>
+
+    </form>
+
+    <!-- ══════════════ PANEL: QUERY REPORT ══════════════ -->
+    <form id="form-query" class="panel" novalidate>
+
+      <div class="panel-head">
+        <h2>Report a query that isn't working</h2>
+        <p>Give context so this can be reproduced and fixed. The more detail, the faster it gets resolved.</p>
+      </div>
+
+      <!-- Framework / Tech -->
+      <div class="field">
+        <label>Framework / Technology <span class="required">*</span></label>
+        <div class="tags-wrap" id="tags-wrap" tabindex="-1">
+          <!-- tags injected here -->
+          <input class="tag-input" id="tag-input" type="text" placeholder="Type or pick below…" autocomplete="off">
+        </div>
+        <div class="tag-suggestions" id="tag-suggestions" aria-label="Common frameworks">
+          <!-- injected by JS -->
+        </div>
+        <input type="hidden" id="tags-hidden" name="frameworks" value="">
+      </div>
+
+      <!-- Query Used -->
+      <div class="field">
+        <label for="query-used">The query / command you ran <span class="required">*</span></label>
+        <textarea class="code-area" id="query-used" name="query" rows="4"
+          placeholder="ziv search 'where is request context handled?'"></textarea>
+      </div>
+
+      <!-- Relevant Files + Output (2 col) -->
+      <div class="field-row">
+        <!-- Version -->
+        <div class="field">
+          <label for="ziv-version-input">ziv version</label>
+          <input type="text" id="ziv-version-input" name="version" placeholder="e.g. 1.2.3" value="">
+        </div>
+      </div>
+
+      <!-- Tool Output -->
+      <div class="field">
+        <div class="field-meta">
+          <label for="tool-output">Tool output <span class="required">*</span></label>
+          <span class="char-count" id="output-count">0 / 3000</span>
+        </div>
+        <textarea class="code-area" id="tool-output" name="output" rows="6"
+          placeholder="Paste the exact terminal output here. Include errors, stack traces, or unexpected responses."></textarea>
+      </div>
+
+      <!-- Expected -->
+      <div class="field">
+        <div class="field-meta">
+          <label for="expected-behavior">What did you expect? <span class="required">*</span></label>
+          <span class="char-count" id="expected-count">0 / 500</span>
+        </div>
+        <textarea id="expected-behavior" name="expected" rows="3"
+          placeholder="Describe the result you expected ziv to produce."></textarea>
+      </div>
+
+      <!-- Additional context -->
+      <div class="field">
+        <label for="extra-context">Additional context <span class="hint">— optional</span></label>
+        <textarea id="extra-context" name="context" rows="3"
+          placeholder="OS, Python version, project structure, or any related files"></textarea>
+      </div>
+
+      <!-- DISCLAIMER -->
+      <p style="
+        font-size: var(--text-xs);
+        color: var(--text-faint);
+        line-height: 1.6;
+        padding-top: var(--space-2);
+        border-top: 1px solid var(--border);
+      ">
+        The query, terminal output, and context you paste here will be reviewed by the ziv team 
+        solely to diagnose and fix the reported issue. Do not include passwords, tokens, or sensitive credentials.
+      </p>
+
+    </form>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+      <h2>Feedback sent</h2>
+      <p id="success-msg">Thanks for taking the time. This helps make ziv better.</p>
+      <p class="close-note">You can close this tab now.</p>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="form-footer" id="form-footer">
+      <span class="footer-note">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to submit</span>
+      <div class="btn-group">
+        <button type="button" class="btn btn-ghost" id="cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="submit-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+          Send feedback
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- TINY FOOTER -->
+  <p style="margin-top:var(--space-6);font-size:var(--text-xs);color:var(--text-faint);font-family:var(--font-mono);">
+    ziv · local feedback session
+  </p>
+
+  <script>
+    // ─── STATE ───────────────────────────────────────────────
+    let currentTab = 'feedback';
+    let rating = 0;
+    let feedbackType = '';
+    const tags = [];
+
+    // Auto-fill version from URL param: ?v=1.2.3
+    const urlParams = new URLSearchParams(location.search);
+    const ver = urlParams.get('v') || '1.0.0';
+    document.getElementById('ziv-version').textContent = 'v' + ver;
+    document.getElementById('ziv-version-input').value = ver;
+
+    // ─── THEME TOGGLE ─────────────────────────────────────────
+    const html = document.documentElement;
+    let darkMode = true;
+    const themeBtn = document.getElementById('theme-toggle');
+    themeBtn.addEventListener('click', () => {
+      darkMode = !darkMode;
+      html.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+      themeBtn.innerHTML = darkMode
+        ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+        : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+    });
+
+    // ─── TABS ────────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.tab;
+        currentTab = t;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.tab === t);
+          b.setAttribute('aria-selected', b.dataset.tab === t);
+        });
+        document.getElementById('form-feedback').classList.toggle('active', t === 'feedback');
+        document.getElementById('form-query').classList.toggle('active', t === 'query');
+      });
+    });
+
+    // ─── STARS ───────────────────────────────────────────────
+    const starBtns = document.querySelectorAll('.star-btn');
+    starBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        rating = parseInt(btn.dataset.val);
+        document.getElementById('rating-val').value = rating;
+        starBtns.forEach(b => b.classList.toggle('lit', parseInt(b.dataset.val) <= rating));
+      });
+      btn.addEventListener('mouseenter', () => {
+        const v = parseInt(btn.dataset.val);
+        starBtns.forEach(b => b.classList.toggle('lit', parseInt(b.dataset.val) <= v));
+      });
+      btn.addEventListener('mouseleave', () => {
+        starBtns.forEach(b => b.classList.toggle('lit', parseInt(b.dataset.val) <= rating));
+      });
+    });
+
+    // ─── FEEDBACK TYPE PILLS ─────────────────────────────────
+    document.querySelectorAll('.pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        feedbackType = btn.dataset.type;
+        document.getElementById('feedback-type').value = feedbackType;
+        document.querySelectorAll('.pill-btn').forEach(b =>
+          b.classList.toggle('active', b.dataset.type === feedbackType)
+        );
+      });
+    });
+
+    // ─── CHAR COUNTERS ────────────────────────────────────────
+    function setupCounter(textareaId, counterId, max) {
+      const ta = document.getElementById(textareaId);
+      const cnt = document.getElementById(counterId);
+      ta.addEventListener('input', () => {
+        const len = ta.value.length;
+        cnt.textContent = `${len} / ${max}`;
+        cnt.classList.toggle('warn', len > max * 0.9);
+        if (len > max) ta.value = ta.value.slice(0, max);
+      });
+    }
+    setupCounter('feedback-msg', 'msg-count', 1000);
+    setupCounter('tool-output', 'output-count', 3000);
+    setupCounter('expected-behavior', 'expected-count', 500);
+
+    // ─── TAG INPUT ────────────────────────────────────────────
+    const PRESETS = [
+      'Django', 'FastAPI', 'Flask', 'Odoo'
+    ];
+
+    const wrap = document.getElementById('tags-wrap');
+    const tagInput = document.getElementById('tag-input');
+    const tagsHidden = document.getElementById('tags-hidden');
+    const suggWrap = document.getElementById('tag-suggestions');
+
+    function renderSuggestions() {
+      const active = tags.map(t => t.toLowerCase());
+      suggWrap.innerHTML = PRESETS
+        .filter(p => !active.includes(p.toLowerCase()))
+        .map(p => `<button type="button" class="sugg-btn" data-val="${p}">${p}</button>`)
+        .join('');
+      suggWrap.querySelectorAll('.sugg-btn').forEach(b => {
+        b.addEventListener('click', () => addTag(b.dataset.val));
+      });
+    }
+
+    function addTag(val) {
+      const v = val.trim();
+      if (!v || tags.includes(v)) return;
+      tags.push(v);
+      tagsHidden.value = tags.join(',');
+      renderTags();
+      renderSuggestions();
+      tagInput.value = '';
+      tagInput.focus();
+    }
+
+    function removeTag(idx) {
+      tags.splice(idx, 1);
+      tagsHidden.value = tags.join(',');
+      renderTags();
+      renderSuggestions();
+    }
+
+    function renderTags() {
+      wrap.querySelectorAll('.tag').forEach(el => el.remove());
+      tags.forEach((t, i) => {
+        const el = document.createElement('span');
+        el.className = 'tag';
+        el.innerHTML = `${t}<button class="tag-remove" type="button" aria-label="Remove ${t}">✕</button>`;
+        el.querySelector('.tag-remove').addEventListener('click', () => removeTag(i));
+        wrap.insertBefore(el, tagInput);
+      });
+    }
+
+    tagInput.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+        e.preventDefault();
+        addTag(tagInput.value.replace(/,/g, ''));
+      }
+      if (e.key === 'Backspace' && !tagInput.value && tags.length) {
+        removeTag(tags.length - 1);
+      }
+    });
+
+    wrap.addEventListener('click', () => tagInput.focus());
+    renderSuggestions();
+
+    // ─── Ctrl+Enter submit ───────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') submitForm();
+    });
+
+    // ─── CANCEL ──────────────────────────────────────────────
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      if (confirm('Discard feedback and close?')) window.close();
+    });
+
+    // ─── SUBMIT ──────────────────────────────────────────────
+    document.getElementById('submit-btn').addEventListener('click', submitForm);
+
+    function submitForm() {
+      if (currentTab === 'feedback') {
+        const msg = document.getElementById('feedback-msg').value.trim();
+        if (!rating) { alert('Please give a star rating.'); return; }
+        if (!feedbackType) { alert('Please choose a feedback type.'); return; }
+        if (!msg) { alert('Please write a message.'); return; }
+      } else {
+        if (!tags.length) { alert('Please add at least one framework or technology.'); return; }
+        if (!document.getElementById('query-used').value.trim()) { alert('Please paste the query you used.'); return; }
+        if (!document.getElementById('tool-output').value.trim()) { alert('Please paste the tool output.'); return; }
+        if (!document.getElementById('expected-behavior').value.trim()) { alert('Please describe the expected behavior.'); return; }
+      }
+
+      const payload = currentTab === 'feedback' ? {
+        type: 'tool_feedback',
+        rating,
+        category: feedbackType,
+        message: document.getElementById('feedback-msg').value.trim(),
+        email: document.getElementById('feedback-email').value.trim(),
+        version: ver,
+        ts: new Date().toISOString()
+      } : {
+        type: 'query_report',
+        frameworks: tags,
+        query: document.getElementById('query-used').value.trim(),
+        output: document.getElementById('tool-output').value.trim(),
+        expected: document.getElementById('expected-behavior').value.trim(),
+        context: document.getElementById('extra-context').value.trim(),
+        version: ver,
+        ts: new Date().toISOString()
+      };
+
+      const remoteEndpoint = urlParams.get('endpoint') || '';
+      const localEndpoint  = `http://127.0.0.1:${new URL(location.href).port}/feedback`;
+
+      async function submitPayload() {
+        let savedRemotely = false;
+
+        if (remoteEndpoint) {
+          try {
+            const r = await fetch(remoteEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (r.ok) savedRemotely = true;
+          } catch (_) {
+            savedRemotely = false;
+          }
+        }
+
+        try {
+          await fetch(localEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, _saved_remotely: savedRemotely })
+          });
+        } catch (_) {}
+
+        document.getElementById('form-feedback').classList.remove('active');
+        document.getElementById('form-query').classList.remove('active');
+        document.querySelector('.tabs').style.display = 'none';
+        document.getElementById('form-footer').style.display = 'none';
+
+        const sm = document.getElementById('success-msg');
+        if (!savedRemotely) {
+          sm.textContent = 'No internet connection. Your feedback has been saved locally and will be available in ~/.ziv/feedback/.';
+        } else {
+          sm.textContent = currentTab === 'feedback'
+            ? 'Your feedback has been recorded. Thanks for helping improve ziv.'
+            : 'Your query report has been sent. It will be reviewed and used to fix the issue.';
+        }
+
+        document.getElementById('success-screen').classList.add('show');
+      }
+
+      submitPayload(); // ← INSIDE submitForm, not outside
+    }
+  </script>
+</body>
+
+</html>

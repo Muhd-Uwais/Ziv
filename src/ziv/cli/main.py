@@ -1,11 +1,14 @@
 import typer
 import logging
 import time
+
 from importlib.metadata import version
 from ziv.pipelines.index_builder import BuildIndex
 from ziv.pipelines.retriever import Retriever
 from ziv.api.process_manager import start_server, stop_server, get_server_status
 from ziv.core.downloader import download_model, _is_model_installed
+from ziv.cli.feedback import launch_feedback
+
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
@@ -265,6 +268,12 @@ def status():
         expand=False
     )
     console.print(panel)
+
+
+@app.command()
+def feedback():
+    """Open feedback form in your browser."""
+    launch_feedback(version=VERSION)
 
 
 def run_cli():
