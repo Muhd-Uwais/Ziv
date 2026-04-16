@@ -22,6 +22,7 @@ def _find_free_port() -> int:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
+
 def _is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -46,6 +47,7 @@ def _read_instance():
     except (ValueError, IndexError, OSError):
         return None, None, None
 
+
 def _write_instance(pid: int, port: int, url: str):
     os.makedirs(".ziv", exist_ok=True)
     with open(INSTANCE_FILE, "w") as f:
@@ -60,6 +62,7 @@ def get_server_url() -> str | None:
         return url
     except OSError:
         return None
+
 
 def get_server_status():
     pid, port, url = _read_instance()
@@ -116,14 +119,18 @@ def start_server(port: int | None = None):
         log_out = open(LOG_FILE, "a")
         kwargs = {"stdout": log_out, "stderr": log_out}
 
+        kwargs["close_fds"] = True
+
         if sys.platform == "win32":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = subprocess.SW_HIDE  # force-hide any window the child opens
+
             kwargs["creationflags"] = (
-                subprocess.DETACHED_PROCESS
-                | subprocess.CREATE_NEW_PROCESS_GROUP
-                | subprocess.CREATE_NO_WINDOW
+                subprocess.CREATE_NO_WINDOW        # no console window, ever
+                | subprocess.CREATE_NEW_PROCESS_GROUP  # isolate Ctrl+C signal group
             )
-        else:
-            kwargs["start_new_session"] = True
+            kwargs["startupinfo"] = si
 
         try:
             process = subprocess.Popen(
