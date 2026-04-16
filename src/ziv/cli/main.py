@@ -67,10 +67,14 @@ def main(
 def build_index(
     path: str = typer.Argument(".", help="The root directory to index"),
     batch_size: int = typer.Option(
-        128, "--batch-size", "-b", help="Batch size for embedding [32, 64, 128]"
+        128,
+        "--batch-size", "-b",
+        help="Batch size for embedding [32, 64, 128]"
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Show internal logs"
+        False,
+        "--verbose", "-v",
+        help="Show internal logs"
     ),
 ):
     """Build the semantic index of your codebase."""
@@ -88,9 +92,15 @@ def build_index(
 def search(
     query: str = typer.Argument(..., help="Natural language search query"),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Show internal logs"),
+        False,
+        "--verbose", "-v",
+        help="Show internal logs"
+    ),
     limit: int = typer.Option(
-        3, "--limit", "-l", help="Number of results to show")
+        3,
+        "--limit", "-l",
+        help="Number of results to show"
+    )
 ):
     """Search your codebase using semantic meaning."""
     setup_logging(verbose)
@@ -175,7 +185,18 @@ def init(
 
 
 @app.command()
-def start(verbose: bool = typer.Option(False, "--verbose", "-v")):
+def start(
+    port: int = typer.Option(
+        None,
+        "--port", "-p",
+        help="Port to bind the server on. Auto-selects a free port if not specified."
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-v",
+        help="Show detailed logs during download."
+    )
+):
     """Start the background embeddings server."""
     setup_logging(verbose)
 
@@ -194,11 +215,17 @@ def start(verbose: bool = typer.Option(False, "--verbose", "-v")):
             )
         )
         raise typer.Exit(code=1)
-    start_server()
+    start_server(port)
 
 
 @app.command()
-def stop(verbose: bool = typer.Option(False, "--verbose", "-v")):
+def stop(
+    verbose: bool = typer.Option(
+        False,
+        "--verbose", "-v",
+        help="Show detailed logs during download."
+    )
+):
     """Stop the background embedding server."""
     setup_logging(verbose)
     stop_server()
