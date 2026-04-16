@@ -8,5 +8,4 @@ artifacts/benchmarks/
 
 
 # files:
-uv.lock
 *.pyc

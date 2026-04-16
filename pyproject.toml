@@ -1,24 +1,24 @@
 [build-system]
-requires = ["hatchling"]                        # Build-time deps
-build-backend = "hatchling.build"               # Backend to call       
+requires = ["hatchling"]                        
+build-backend = "hatchling.build"                    
 
 [project]
-name = "ziv"                                   # PyPI / pip name
-version = "0.2.0"                               # Version
+name = "ziv"                                   
+version = "0.2.0"                               
 description = "Local File Intelligence Tool"    
-requires-python = ">=3.10"                      # Python Version requirement
+requires-python = ">=3.10"                      
 dependencies = [
-    "typer>=0.24.0",                            # Runtime deps
-    "faiss-cpu",
-    "numpy",
-    "psutil",
-    "fastapi",
-    "uvicorn",
-    "requests",
-    "tokenizers",
-    "huggingface_hub",
-    "hf_transfer",
-    "onnx",
+    "typer~=0.24.0",                            
+    "faiss-cpu~=1.13.2",
+    "numpy~=2.2.6",
+    "psutil~=7.2.2",
+    "fastapi~=0.135.3",
+    "uvicorn~=0.44.0",
+    "requests~=2.33.1",
+    "tokenizers~=0.22.2",
+    "huggingface_hub~=1.10.1",
+    "hf_transfer~=0.1.9",
+    "onnx~=1.21.0",
     "onnxruntime==1.19.2",
 ]
 authors = [
@@ -29,4 +29,4 @@ authors = [
 packages = ["src/ziv"]
 
 [project.scripts]
-ziv = "ziv.cli.main:run_cli"                           # CLI entry point
+ziv = "ziv.cli.main:run_cli"                           
