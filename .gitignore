@@ -4,6 +4,8 @@ models/
 .venv/
 .ziv/
 dist/
+artifacts/benchmarks/
+
 
 # files:
 uv.lock
