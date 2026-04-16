@@ -5,30 +5,75 @@ import signal
 import logging
 import time
 import requests
+import socket
 from rich.console import Console
 
 
 logger = logging.getLogger(__name__)
 console = Console()
 
-PID_FILE = ".ziv/server.pid"
+INSTANCE_FILE = ".ziv/server.instance"
 LOG_FILE = ".ziv/server.log"
-SERVER_URL = "http://127.0.0.1:8000"
 
+
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+def _is_port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind(("127.0.0.1", port))
+            return False
+        except OSError:
+            return True
+
+
+def _read_instance():
+    if not os.path.exists(INSTANCE_FILE):
+        return None, None, None
+    try:
+        with open(INSTANCE_FILE, "r") as f:
+            lines = f.read().strip().splitlines()
+
+        pid = int(lines[0])
+        port = int(lines[1])
+        url = lines[2]
+        return pid, port, url
+    except (ValueError, IndexError, OSError):
+        return None, None, None
+
+def _write_instance(pid: int, port: int, url: str):
+    os.makedirs(".ziv", exist_ok=True)
+    with open(INSTANCE_FILE, "w") as f:
+        f.write(f"{pid}\n{port}\n{url}\n")
+
+
+def get_server_url() -> str | None:
+    pid, _, url = _read_instance()
+
+    try:
+        os.kill(pid, 0)
+        return url
+    except OSError:
+        return None
 
 def get_server_status():
-    if not os.path.exists(PID_FILE):
+    pid, port, url = _read_instance()
+
+    if pid is None:
         return False, None, None
 
     try:
-        with open(PID_FILE, "r") as f:
-            pid = int(f.read().strip())
         os.kill(pid, 0)
     except (OSError, ValueError):
         return False, None, None
 
     try:
-        response = requests.get(f"{SERVER_URL}/health", timeout=1)
+        response = requests.get(f"{url}/health", timeout=1)
         if response.status_code == 200:
             return True, pid, response.json()
     except:
@@ -37,35 +82,58 @@ def get_server_status():
     return True, pid, None
 
 
-def start_server():
+def start_server(port: int | None = None):
     os.makedirs(".ziv", exist_ok=True)
     is_alive, pid, _ = get_server_status()
 
     if is_alive:
+        _, _, existing_url = _read_instance()
         console.print(
-            f"[yellow]ℹ️  Server is already running (PID: {pid}).[/yellow]")
+            f"[yellow]ℹ️  Server is already running (PID: {pid}) at {existing_url}[/yellow]"
+        )
         return
 
-    if os.path.exists(PID_FILE):
-        os.remove(PID_FILE)
+    if os.path.exists(INSTANCE_FILE):
+        os.remove(INSTANCE_FILE)
 
-    with console.status("[bold green]Starting AI Embedding Server... Initialization may take few moments.", spinner="arc") as status:
+    if port is not None:
+        if _is_port_in_use(port):
+            console.print(
+                f"[bold red]❌ Port {port} is already in use.[/bold red] "
+                "Use a different port or omit [cyan]--port[/cyan] to auto-select."
+            )
+            return
+        resolved_port = port
+    else:
+        resolved_port = _find_free_port()
+
+    server_url = f"http://127.0.0.1:{resolved_port}/"
+
+    with console.status(
+        "[bold green]Starting AI Embedding Server... Initialization may take a few moments.",
+        spinner="arc",
+    ):
         log_out = open(LOG_FILE, "a")
         kwargs = {"stdout": log_out, "stderr": log_out}
 
         if sys.platform == "win32":
             kwargs["creationflags"] = (
-                subprocess.DETACHED_PROCESS |
-                subprocess.CREATE_NEW_PROCESS_GROUP |
-                subprocess.CREATE_NO_WINDOW
+                subprocess.DETACHED_PROCESS
+                | subprocess.CREATE_NEW_PROCESS_GROUP
+                | subprocess.CREATE_NO_WINDOW
             )
         else:
             kwargs["start_new_session"] = True
 
         try:
             process = subprocess.Popen(
-                ["uvicorn", "ziv.api.embed_server:app", "--port", "8000"],
-                **kwargs
+                [
+                    "uvicorn",
+                    "ziv.api.embed_server:app",
+                    "--host", "127.0.0.1",
+                    "--port", str(resolved_port),
+                ],
+                **kwargs,
             )
         except PermissionError:
             logger.error(
@@ -85,8 +153,8 @@ def start_server():
             console.print(f"[bold red]❌ Unexpected error:[/bold red] {e}")
             return
 
-        with open(PID_FILE, "w") as f:
-            f.write(str(process.pid))
+        _write_instance(process.pid, resolved_port, server_url)
+        console.print(f"[dim]  → Binding on {server_url}[/dim]")
 
         # Waiting loop
         start_time = time.time()
@@ -99,34 +167,44 @@ def start_server():
                 logger.error("Server failed to start")
                 console.print(
                     f"🔍 Check the logs for details: [cyan]cat {LOG_FILE}[/cyan]")
-                if os.path.exists(PID_FILE):
-                    os.remove(PID_FILE)
+                if os.path.exists(INSTANCE_FILE):
+                    os.remove(INSTANCE_FILE)
                 return
 
             # 2. Check if API is ready
-            alive_now, _, api_data = get_server_status()
+            _, _, api_data = get_server_status()
             if api_data and api_data.get("model_status") == "Ready":
+                elapsed = time.time() - start_time
                 console.print(
-                    f"✅ [bold green]Server ready![/bold green] [white](Took {time.time()-start_time:.1f}s)[/white]")
-                logger.info("Server ready!")
+                    f"✅ [bold green]Server ready![/bold green] "
+                    f"[white](Took {elapsed:.1f}s, port {resolved_port})[/white]"
+                )
+                logger.info("Server ready at %s", server_url)
                 return
 
             time.sleep(1)
 
         console.print(
-            "\n[bold yellow]⚠️  Timed out waiting for server. It might still be loading in the background.[/bold yellow]")
+            "\n[bold yellow]⚠️  Timed out waiting for server. "
+            "It might still be loading in the background.[/bold yellow]"
+        )
 
 
 def stop_server():
-    if not os.path.exists(PID_FILE):
+    if not os.path.exists(INSTANCE_FILE):
         console.print("[yellow]ℹ️  No server is currently running.[/yellow]")
+        return
+
+    pid, port, url = _read_instance()
+    if pid is None:
+        console.print(
+            "[bold red]❌ Corrupted instance file. Removing it.[/bold red]")
+
+        os.remove(INSTANCE_FILE)
         return
 
     with console.status("[bold red]Stopping server...", spinner="bouncingBall"):
         try:
-            with open(PID_FILE, "r") as f:
-                pid = int(f.read())
-
             if sys.platform == "win32":
                 # On windows: os.kill with SIGINT is unrelaible.
                 # Use CTRL_C_EVENT
@@ -155,8 +233,8 @@ def stop_server():
                 except OSError:
                     pass
 
-            if os.path.exists(PID_FILE):
-                os.remove(PID_FILE)
+            if os.path.exists(INSTANCE_FILE):
+                os.remove(INSTANCE_FILE)
 
             console.print("🛑 [bold red]Server stopped.[/bold red]")
             logger.info("Server stopped by user.")
@@ -165,8 +243,8 @@ def stop_server():
                 "[bold red]❌ PID file missing or invalid.[/bold red]")
         except ValueError:
             console.print("[bold red]❌ Corrupted PID file.[/bold red]")
-            if os.path.exists(PID_FILE):
-                os.remove(PID_FILE)
+            if os.path.exists(INSTANCE_FILE):
+                os.remove(INSTANCE_FILE)
         except Exception as e:
             logger.error(f"Error stopping server: {e}")
             console.print(
