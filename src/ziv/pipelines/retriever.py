@@ -3,6 +3,7 @@ import logging
 import requests
 from rich.console import Console
 from ..core.vector_store import load, is_index_built
+from ..api.process_manager import get_server_url
 from ..core import vector_store
 
 
@@ -12,7 +13,7 @@ console = Console()
 
 class Retriever:
     def __init__(self, index_path=".ziv"):
-        self.api_link = "http://localhost:8000/"
+        self.api_link = get_server_url()
 
         if not is_index_built(index_path):
             console.print(
@@ -23,6 +24,9 @@ class Retriever:
         self.index, self.id_map = load(index_path)
 
     def __is_server_ready(self):
+        if self.api_link is None:
+            raise RuntimeError(
+                "Embedding server is not running. Start it with `ziv start`.")
         try:
             response = requests.get(self.api_link+"health", timeout=1)
             return response.status_code == 200

@@ -23,6 +23,7 @@ from rich.table import Table
 from ..core.file_loader import load_files_from_directory
 from ..core.chunker import chunk_directory
 from ..core.vector_store import build_and_save
+from ..api.process_manager import get_server_url
 
 
 logger = logging.getLogger(__name__)
@@ -45,11 +46,14 @@ def _make_progress() -> Progress:
 
 
 class BuildIndex:
-    def __init__(self, api_link="http://localhost:8000/", dim=384):
-        self.api_link = api_link
+    def __init__(self, dim=384):
+        self.api_link = get_server_url()
         self.dim = dim
 
     def __is_server_ready(self):
+        if self.api_link is None:
+            raise RuntimeError(
+                "Embedding server is not running. Start it with `ziv start`.")
         try:
             response = requests.get(self.api_link+"health", timeout=1)
             return response.status_code == 200
