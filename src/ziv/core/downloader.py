@@ -7,6 +7,7 @@ import os
 import shutil
 import signal
 import sys
+import logging
 
 import huggingface_hub
 from huggingface_hub import snapshot_download
@@ -17,6 +18,8 @@ from rich.text import Text
 
 console = Console()
 huggingface_hub.constants.HF_HUB_ENABLE_HF_TRANSFER = True
+
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
 # ── Constants ────────────────────────────────────────────────────────────────
