@@ -26,7 +26,9 @@ logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
 REPO_ID_FAST = "ziv-ai/embedder-fast-onnx"
-MODEL_DIR_FAST = os.path.join(".ziv", "models", "embedder-fast-onnx")
+
+ZIV_HOME = os.path.join(os.path.expanduser("~"), ".ziv")
+MODEL_DIR_FAST = os.path.join(ZIV_HOME, "models", "embedder-fast-onnx")
 
 # All files required for the tool to work. Missing any = silent breakage.
 REQUIRED_FILES = [

@@ -12,8 +12,9 @@ from rich.console import Console
 logger = logging.getLogger(__name__)
 console = Console()
 
-INSTANCE_FILE = ".ziv/server.instance"
-LOG_FILE = ".ziv/server.log"
+ZIV_HOME =  os.path.join(os.path.expanduser("~"), ".ziv")
+INSTANCE_FILE = os.path.join(ZIV_HOME, "server.instance")
+LOG_FILE = os.path.join(ZIV_HOME, "server.log")
 
 
 def _find_free_port() -> int:

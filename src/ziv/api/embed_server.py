@@ -10,7 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 MODEL_NAME = "embedder-fast-onnx"
-MODEL_DIR = os.path.join(os.getcwd(), ".ziv/models", MODEL_NAME)
+
+ZIV_HOME = os.path.join(os.path.expanduser("~"), ".ziv")
+MODEL_DIR = os.path.join(ZIV_HOME, "models", MODEL_NAME)
 
 
 class ModelContainer:
