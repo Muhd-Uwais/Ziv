@@ -10,6 +10,10 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap"
     rel="stylesheet">
+  <!-- Favicon -->
+  <link rel="icon" href="/static/favicon/favicon.ico" sizes="any">
+
+
   <style>
     /* ─── TOKENS ─────────────────────────────────────────── */
     :root {
@@ -147,7 +151,6 @@
     .logo-mark {
       width: 32px;
       height: 32px;
-      background: var(--accent);
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
@@ -158,6 +161,12 @@
       color: #fff;
       letter-spacing: -0.5px;
       flex-shrink: 0;
+    }
+
+    .logo-mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .logo-text {
@@ -731,13 +740,15 @@
   <!-- HEADER -->
   <header class="header">
     <div class="logo">
-      <div class="logo-mark">ziv</div>
+      <div class="logo-mark">
+        <img src="/static/icon-192x192.png" alt="ziv logo">
+      </div>
       <span class="logo-text"><span>ziv</span> Feedback</span>
     </div>
     <div style="display:flex;align-items:center;gap:var(--space-3)">
       <div class="version-badge">
         <span class="version-dot"></span>
-        <span id="ziv-version">v1.0.0</span>
+        <span id="ziv-version">v__ZIV_VERSION__</span>
       </div>
       <button class="theme-btn" id="theme-toggle" aria-label="Toggle theme">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -948,7 +959,7 @@
         padding-top: var(--space-2);
         border-top: 1px solid var(--border);
       ">
-        The query, terminal output, and context you paste here will be reviewed by the ziv team 
+        The query, terminal output, and context you paste here will be reviewed by the ziv team
         solely to diagnose and fix the reported issue. Do not include passwords, tokens, or sensitive credentials.
       </p>
 
@@ -997,7 +1008,14 @@
 
     // Auto-fill version from URL param: ?v=1.2.3
     const urlParams = new URLSearchParams(location.search);
-    const ver = urlParams.get('v') || '1.0.0';
+
+    // priority: URL → localStorage → default
+    let ver = urlParams.get('v') || localStorage.getItem('ziv_version') || '0.3.0';
+
+    // persist it
+    localStorage.setItem('ziv_version', ver);
+
+    // apply to UI
     document.getElementById('ziv-version').textContent = 'v' + ver;
     document.getElementById('ziv-version-input').value = ver;
 
@@ -1178,8 +1196,8 @@
         ts: new Date().toISOString()
       };
 
-      const remoteEndpoint = urlParams.get('endpoint') || '';
-      const localEndpoint  = `http://127.0.0.1:${new URL(location.href).port}/feedback`;
+      const remoteEndpoint = "__REMOTE_ENDPOINT__";
+      const localEndpoint = `http://127.0.0.1:${new URL(location.href).port}/feedback`;
 
       async function submitPayload() {
         let savedRemotely = false;
@@ -1203,7 +1221,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...payload, _saved_remotely: savedRemotely })
           });
-        } catch (_) {}
+        } catch (_) { }
 
         document.getElementById('form-feedback').classList.remove('active');
         document.getElementById('form-query').classList.remove('active');

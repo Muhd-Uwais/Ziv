@@ -25,10 +25,7 @@ authors = [{ name = "Muhd Uwais" }]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ziv"]
-include = ["ziv/cli/templates/**/*"]
 
-[tool.hatch.build.targets.wheel.sources]
-"src" = ""
 
 [project.scripts]
 ziv = "ziv.cli.main:run_cli"
