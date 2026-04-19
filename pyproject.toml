@@ -6,6 +6,8 @@ build-backend = "hatchling.build"
 name = "ziv"
 version = "0.2.0"
 description = "Local File Intelligence Tool"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "typer~=0.24.0",

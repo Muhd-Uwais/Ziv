@@ -1,0 +1,68 @@
+Ziv
+Copyright 2026 Muhammed Uwais
+
+This product includes the following third-party software components:
+
+-----------------------------------------------------------------------
+FAISS (Facebook AI Similarity Search)
+License: MIT
+Copyright (c) Meta Platforms, Inc. and its affiliates.
+https://github.com/facebookresearch/faiss
+-----------------------------------------------------------------------
+sentence-transformers/all-MiniLM-L6-v2 (ONNX conversion hosted at huggingface.co/ziv-ai/embedder-fast-onnx)
+License: Apache 2.0
+https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+-----------------------------------------------------------------------
+Typer
+License: MIT
+Copyright (c) 2019 Sebastián Ramírez
+https://github.com/fastapi/typer
+-----------------------------------------------------------------------
+NumPy
+License: BSD 3-Clause
+Copyright (c) 2005-2025, NumPy Developers.
+https://numpy.org
+-----------------------------------------------------------------------
+psutil
+License: BSD 3-Clause
+Copyright (c) 2009, Jay Loden, Dave Daeschler, Giampaolo Rodola
+https://github.com/giampaolo/psutil
+-----------------------------------------------------------------------
+FastAPI
+License: MIT
+Copyright (c) 2018 Sebastián Ramírez
+https://github.com/fastapi/fastapi
+-----------------------------------------------------------------------
+Uvicorn
+License: BSD 3-Clause
+https://github.com/encode/uvicorn
+-----------------------------------------------------------------------
+Requests
+License: Apache 2.0
+Copyright 2019 Kenneth Reitz
+https://github.com/psf/requests
+-----------------------------------------------------------------------
+Tokenizers (Hugging Face)
+License: Apache 2.0
+Copyright 2019 Hugging Face, Inc.
+https://github.com/huggingface/tokenizers
+-----------------------------------------------------------------------
+huggingface_hub
+License: Apache 2.0
+Copyright 2020 Hugging Face, Inc.
+https://github.com/huggingface/huggingface_hub
+-----------------------------------------------------------------------
+hf_transfer
+License: Apache 2.0
+Copyright 2022 Hugging Face, Inc.
+https://github.com/huggingface/hf_transfer
+-----------------------------------------------------------------------
+ONNX
+License: Apache 2.0
+https://github.com/onnx/onnx
+-----------------------------------------------------------------------
+ONNX Runtime
+License: MIT
+Copyright (c) Microsoft Corporation
+https://github.com/microsoft/onnxruntime
+-----------------------------------------------------------------------
