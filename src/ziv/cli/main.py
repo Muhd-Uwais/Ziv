@@ -85,7 +85,7 @@ def build_index(
 
     if batch_size not in (32, 64, 128):
         raise typer.BadParameter(
-            "batch_size must be 32 or 64", param_hint="--batch-size")
+            "batch_size must be [32, 64, 128]", param_hint="--batch-size")
 
     indexer = BuildIndex()
     indexer.build_index(root_path=path, batch_size=batch_size)
