@@ -5,7 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "ziv"
 version = "0.2.0"
-description = "Local File Intelligence Tool"
+description = "Local semantic code search for Python repositories — no cloud, no API keys."
+readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
