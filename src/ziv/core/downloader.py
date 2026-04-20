@@ -1,13 +1,10 @@
-"""
-downloader.py — Model downloader for ziv.
-Downloads ONNX model files from Hugging Face and stores them locally.
-"""
+"""Download and verify the Ziv embedding model."""
 
-import os
-import shutil
-import signal
-import sys
+from __future__ import annotations
+
 import logging
+import shutil
+from pathlib import Path
 
 import huggingface_hub
 from huggingface_hub import snapshot_download
@@ -17,69 +14,54 @@ from rich.text import Text
 
 
 console = Console()
+
 huggingface_hub.constants.HF_HUB_ENABLE_HF_TRANSFER = True
-
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
-
-
-# ── Constants ────────────────────────────────────────────────────────────────
-
 
 REPO_ID_FAST = "ziv-ai/embedder-fast-onnx"
 
-ZIV_HOME = os.path.join(os.path.expanduser("~"), ".ziv")
-MODEL_DIR_FAST = os.path.join(ZIV_HOME, "models", "embedder-fast-onnx")
+ZIV_HOME = Path.home() / ".ziv"
+MODEL_DIR_FAST = ZIV_HOME / "models" / "embedder-fast-onnx"
 
-# All files required for the tool to work. Missing any = silent breakage.
 REQUIRED_FILES = [
     "model.onnx",
     "tokenizer.json",
     "tokenizer_config.json",
     "config.json",
-    os.path.join("1_Pooling", "config.json"),
+    "1_Pooling/config.json",
 ]
 
-HF_RESOLVE_URL_FAST = "https://huggingface.co/{repo_id}/resolve/main/{filename}"
-HF_API_URL_FAST = "https://huggingface.co/api/models/{repo_id}"
 
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def _is_model_installed(model_dir: str = MODEL_DIR_FAST, i=0) -> bool:
-    """Return True only if all required files exist and are non-empty."""
+def _is_model_installed(model_dir: str | Path = MODEL_DIR_FAST) -> bool:
+    """Return True if all required model files exist and are non-empty."""
+    model_path = Path(model_dir)
     return all(
-        os.path.isfile(os.path.join(model_dir, f))
-        and os.path.getsize(os.path.join(model_dir, f)) > 0
-        for f in REQUIRED_FILES
+        (model_path / relative_path).is_file()
+        and (model_path / relative_path).stat().st_size > 0
+        for relative_path in REQUIRED_FILES
     )
 
 
-def _cleanup(model_dir: str) -> None:
-    """Delete the model directory — called on interrupted or failed downloads."""
-    if os.path.isdir(model_dir):
-        shutil.rmtree(model_dir)
+def _cleanup(model_dir: str | Path) -> None:
+    """Remove a partial model directory."""
+    model_path = Path(model_dir)
+    if model_path.is_dir():
+        shutil.rmtree(model_path)
 
 
-# ── Public API ───────────────────────────────────────────────────────────────
+def download_model(
+    model_dir: str | Path = MODEL_DIR_FAST,
+    repo_id: str = REPO_ID_FAST,
+) -> None:
+    """Download the ONNX model from Hugging Face and verify required files."""
+    model_path = Path(model_dir)
 
-
-def download_model(model_dir: str = MODEL_DIR_FAST, repo_id: str = REPO_ID_FAST) -> None:
-    """
-    Download the ziv ONNX model from HuggingFace to model_dir.
-
-    - Skips silently if the model is already fully installed.
-    - Registers SIGINT/SIGTERM handlers to clean up on interruption.
-    - Verifies required files after download; cleans up on failure.
-    """
-
-    # ── Already installed ────────────────────────────────────────────────────
-    if _is_model_installed(model_dir):
+    if _is_model_installed(model_path):
         console.print(
             Panel(
                 Text.assemble(
-                    ("✔  Model already installed\n", "bold green"),
-                    (f"   {os.path.abspath(model_dir)}", "dim"),
+                    ("✔ Model already installed\n", "bold green"),
+                    (str(model_path.resolve()), "dim"),
                 ),
                 border_style="green",
                 title="[bold green]ziv[/bold green]",
@@ -88,14 +70,13 @@ def download_model(model_dir: str = MODEL_DIR_FAST, repo_id: str = REPO_ID_FAST)
         )
         return
 
-    # ── Announce ─────────────────────────────────────────────────────────────
     console.print(
         Panel(
             Text.assemble(
                 ("Downloading model: ", "bold white"),
                 (repo_id, "bold cyan"),
-                ("\nDestination:       ", "bold white"),
-                (os.path.abspath(model_dir), "dim"),
+                ("\nDestination: ", "bold white"),
+                (str(model_path.resolve()), "dim"),
             ),
             border_style="cyan",
             title="[bold cyan]ziv · model install[/bold cyan]",
@@ -103,53 +84,33 @@ def download_model(model_dir: str = MODEL_DIR_FAST, repo_id: str = REPO_ID_FAST)
         )
     )
 
-    # ── Fetch file list ──────────────────────────────────────────────────────
-    with console.status("[cyan]Fetching file list from HuggingFace…[/cyan]"):
-        pass
-
-    # ── Interrupt handler — clean up partial download on Ctrl+C ──────────────
-    def _on_interrupt(sig, frame):
-        console.print(
-            "\n[bold yellow]⚠  Download interrupted — cleaning up…[/bold yellow]")
-        _cleanup(model_dir)
-        console.print(
-            "[bold red]✖  Partial files removed. Run again to retry.[/bold red]")
-        sys.exit(1)
-
-    signal.signal(signal.SIGINT,  _on_interrupt)
-    signal.signal(signal.SIGTERM, _on_interrupt)
-
-    # ── Download ─────────────────────────────────────────────────────────────
     try:
         with console.status(
-            "[cyan]Downloading model files — this may take a minute…[/cyan]",
-            spinner="dots"
+            "[cyan]Downloading model files...[/cyan]",
+            spinner="dots",
         ):
             snapshot_download(
                 repo_id=repo_id,
                 repo_type="model",
-                local_dir=model_dir,
+                local_dir=str(model_path),
             )
-
+    except KeyboardInterrupt:
+        console.print("\n[bold yellow]⚠ Download interrupted. Cleaning up...[/bold yellow]")
+        _cleanup(model_path)
+        raise
     except Exception as exc:
-        console.print(f"\n[bold red]✖  Download failed:[/bold red] {exc}")
-        console.print("[yellow]  Cleaning up partial files…[/yellow]")
-        _cleanup(model_dir)
-        sys.exit(1)
+        _cleanup(model_path)
+        raise RuntimeError(f"Model download failed: {exc}") from exc
 
-    # ── Post-download verification ────────────────────────────────────────────
-    if not _is_model_installed(model_dir, i=1):
-        console.print(
-            "[bold red]✖  Verification failed — required files missing or empty.[/bold red]")
-        console.print("[yellow]  Cleaning up…[/yellow]")
-        _cleanup(model_dir)
-        sys.exit(1)
+    if not _is_model_installed(model_path):
+        _cleanup(model_path)
+        raise RuntimeError("Model verification failed: required files are missing.")
 
     console.print(
         Panel(
             Text.assemble(
-                ("✔  Model installed successfully\n", "bold green"),
-                (f"{os.path.abspath(model_dir)}", "dim"),
+                ("✔ Model installed successfully\n", "bold green"),
+                (str(model_path.resolve()), "dim"),
             ),
             border_style="green",
             title="[bold green]ziv[/bold green]",
