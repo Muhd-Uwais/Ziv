@@ -271,7 +271,7 @@ No flags. Output example:
 ```
 ╭─────── ziv · server status ────────╮
 │  Process       ● running           │
-│  PID           39135               │
+│  PID           12345               │
 │  Model Status  ✔ ready             │
 │  Model         embedder-fast-onnx  │
 ╰────────────────────────────────────╯
@@ -339,7 +339,7 @@ ziv's pipeline has four stages:
       │
       ▼
  ┌─────────────┐
- │  file_loader│  Walk the directory tree, skip VCS/build/dep dirs,
+ │ file_loader │  Walk the directory tree, skip VCS/build/dep dirs,
  │             │  read .py files as UTF-8 text records.
  └──────┬──────┘
         │
