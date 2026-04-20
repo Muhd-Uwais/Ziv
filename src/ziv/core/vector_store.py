@@ -1,109 +1,81 @@
-"""vector_store.py — FAISS index lifecycle management for the ziv search pipeline.
+"""vector_store.py — FAISS index lifecycle management for the Ziv search pipeline."""
 
-Owns the three operations every retrieval workflow needs:
-
-  1. **Build** — convert raw float embeddings into a FAISS ``IndexFlatIP``,
-     L2-normalise them, and persist both the index binary and the integer→
-     metadata map to ``OUTPUT_DIR``.
-  2. **Load** — restore a previously built index and its companion ID map from
-     disk, transparently converting JSON string keys back to ``int``.
-  3. **Search** — run a normalised nearest-neighbour query against a loaded
-     index and return enriched result dicts ready for the CLI output layer.
-
-``IndexFlatIP`` on L2-normalised vectors is equivalent to cosine similarity.
-Scores therefore lie in ``[0.0, 1.0]`` for well-formed inputs; callers may
-rely on that invariant.
-
-All path arguments default to ``OUTPUT_DIR`` (``.ziv/``), the only directory
-ziv writes to at runtime.
-"""
+from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 import faiss
 import numpy as np
 
+
 logger = logging.getLogger(__name__)
 
-# Filenames are module-level constants so every module that references these
-# paths imports from one place rather than scattering string literals.
 INDEX_FILENAME = "index.faiss"
 ID_MAP_FILENAME = "id_map.json"
 OUTPUT_DIR = ".ziv"
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
+def _as_float32_matrix(embeddings: list[list[float]] | np.ndarray) -> np.ndarray:
+    """Return a 2D float32 matrix."""
+    vectors = np.asarray(embeddings, dtype=np.float32)
+    if vectors.ndim != 2 or vectors.shape[0] == 0:
+        raise ValueError("embeddings must be a non-empty 2D matrix")
+    return vectors
 
 
 def build_and_save(
-    embeddings: list[list[float]],
-    metadata: list[dict],
+    embeddings: list[list[float]] | np.ndarray,
+    metadata: list[dict[str, Any]],
     output_dir: str | Path = OUTPUT_DIR,
 ) -> None:
-    """Build an ``IndexFlatIP`` from *embeddings* and persist it to *output_dir*.
+    """Build a FAISS IndexFlatIP index and save it with its metadata map."""
+    vectors = _as_float32_matrix(embeddings)
 
-    Called by the index-builder stage after embedding generation completes.
-    Vectors are L2-normalised before insertion even when the upstream embedder
-    already normalises them — a hard guarantee is cheaper than a silent
-    correctness assumption that breaks if the embedder ever changes.
-
-    **ID map** — FAISS returns integer row positions, not the original chunk
-    identifiers.  A ``{int → chunk_metadata_dict}`` companion map is therefore
-    serialised alongside the index.  Position ``i`` in the map corresponds to
-    row ``i`` in the vector matrix; the alignment is enforced by the
-    ``len`` equality check below.
-
-    Raises:
-        ValueError: If *embeddings* is empty, or if *embeddings* and *metadata*
-            have different lengths.  A length mismatch would produce a corrupted
-            index where some FAISS row positions have no metadata entry,
-            surfacing as a silent ``None`` return in ``search`` rather than a
-            loud failure here.
-    """
-    if embeddings is None or embeddings.shape[0] == 0:
-        raise ValueError("Cannot build index from empty embeddings list")
-
-    # Enforce alignment before doing any work — a mismatch here means the
-    # caller's pipeline is broken, and we want a loud error at the source.
-    if len(embeddings) != len(metadata):
+    if len(vectors) != len(metadata):
         raise ValueError(
             f"embeddings and metadata must have the same length "
-            f"(got {len(embeddings)} vs {len(metadata)})"
+            f"(got {len(vectors)} vs {len(metadata)})"
         )
 
-    vectors = np.asarray(embeddings, dtype=np.float32)
-    dim = vectors.shape[1]
-
-    # Normalise before insertion — idempotent on unit vectors, protective
-    # on anything the caller forgot to normalise.
     faiss.normalize_L2(vectors)
 
-    index = faiss.IndexFlatIP(dim)
+    index = faiss.IndexFlatIP(vectors.shape[1])
     index.add(vectors)
 
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    # FAISS I/O functions expect a plain string, not a Path object.
     faiss.write_index(index, str(out / INDEX_FILENAME))
 
-    # integer FAISS row position → chunk metadata.
-    # Index i aligns with row i in the vectors array.
     id_map = {i: meta for i, meta in enumerate(metadata)}
+    (out / ID_MAP_FILENAME).write_text(json.dumps(id_map, indent=2), encoding="utf-8")
 
-    with open(out / ID_MAP_FILENAME, "w", encoding="utf-8") as f:
-        json.dump(id_map, f, indent=4)
+    logger.info("FAISS index built: %d vectors, dim=%d -> %s",
+                len(vectors), vectors.shape[1], out)
 
-    logger.info(
-        "FAISS index built: %d vectors, dim=%d → saved to '%s'",
-        len(embeddings),
-        dim,
-        out,
-    )
+
+def load(output_dir: str | Path = OUTPUT_DIR) -> tuple[faiss.Index, dict[int, dict[str, Any]]]:
+    """Load the FAISS index and its metadata map from disk."""
+    out = Path(output_dir)
+    index_path = out / INDEX_FILENAME
+    id_map_path = out / ID_MAP_FILENAME
+
+    if not index_path.exists():
+        raise FileNotFoundError(
+            f"No FAISS index found at '{index_path}'. Run `ziv build-index` first.")
+    if not id_map_path.exists():
+        raise FileNotFoundError(
+            f"No ID map found at '{id_map_path}'. Run `ziv build-index` first.")
+
+    index = faiss.read_index(str(index_path))
+    raw = json.loads(id_map_path.read_text(encoding="utf-8"))
+    id_map = {int(k): v for k, v in raw.items()}
+
+    logger.info("FAISS index loaded: %d vectors from '%s'", index.ntotal, out)
+    return index, id_map
 
 
 def load(
@@ -153,92 +125,55 @@ def load(
 
 def search(
     index: faiss.Index,
-    id_map: dict[int, dict],
+    id_map: dict[int, dict[str, Any]],
     query_vector: np.ndarray | list[float],
     k: int = 5,
-) -> list[dict]:
-    """Return the top-*k* nearest chunks to *query_vector*.
-
-    **Index type** — the parameter is typed as ``faiss.Index`` (the base
-    class) rather than ``faiss.IndexFlatIP`` so callers can swap in any FAISS
-    index (``IndexHNSWFlat``, ``IndexIVFFlat``, …) without a type error.
-
-    **``np.asarray`` vs ``np.array``** — ``asarray`` avoids an unnecessary
-    copy when *query_vector* is already a correctly-typed ``ndarray``; it
-    returns a view in that case.  The reshape and normalise operations are
-    still safe because FAISS does not hold a reference to the query buffer
-    after ``search`` returns.
-
-    **Normalisation** — the query is normalised unconditionally.  Scores are
-    therefore cosine similarities in ``[0.0, 1.0]``; the caller can treat them
-    as such without knowing how the query was produced.
-
-    **FAISS ``-1`` padding** — when fewer than *k* results exist, FAISS pads
-    the output arrays with ``-1``.  Those sentinels are silently dropped so
-    the caller receives a shorter list rather than an error.
-
-    **Orphaned indices** — a FAISS position with no ``id_map`` entry (possible
-    if the index and map files are out of sync) is logged as a warning and
-    skipped.  A partial result is preferable to crashing an interactive
-    search session.
-
-    Raises:
-        ValueError: If *k* < 1.
-    """
+) -> list[dict[str, Any]]:
+    """Return the top-k nearest chunks for a query vector."""
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
 
-    # asarray avoids a copy when query_vector is already a float32 ndarray.
     query = np.asarray(query_vector, dtype=np.float32)
-
     if query.ndim == 1:
-        # FAISS expects a 2-D matrix of shape (n_queries, dim).
         query = query.reshape(1, -1)
+    if query.ndim != 2 or query.shape[0] != 1:
+        raise ValueError(
+            "query_vector must be a 1D vector or a single-row matrix")
 
-    # Unconditional normalisation — do not trust the caller to have done it.
     faiss.normalize_L2(query)
 
-    # Guard: cannot request more neighbours than vectors in the index.
     k = min(k, index.ntotal)
     if k == 0:
         return []
 
     scores, indices = index.search(query, k)
 
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     for score, idx in zip(scores[0], indices[0]):
         if idx == -1:
-            # FAISS sentinel — fewer than k results exist.
             continue
 
         chunk = id_map.get(int(idx))
         if chunk is None:
-            # Index and map are out of sync — recoverable, but worth surfacing.
             logger.warning(
-                "FAISS returned index %d with no metadata entry — "
-                "index and id_map may be out of sync; skipping",
-                idx,
-            )
+                "FAISS returned index %d with no metadata entry; skipping", idx)
             continue
 
-        results.append({
-            "score":      float(score),
-            "file_path":  chunk["file_path"],
-            "start_line": chunk["start_line"],
-            "end_line":   chunk["end_line"],
-            "content":    chunk["content"],
-            "chunk_id":   chunk["id"],
-        })
+        results.append(
+            {
+                "score": float(score),
+                "file_path": chunk["file_path"],
+                "start_line": chunk["start_line"],
+                "end_line": chunk["end_line"],
+                "content": chunk["content"],
+                "chunk_id": chunk["id"],
+            }
+        )
 
     return results
 
 
 def is_index_built(output_dir: str | Path = OUTPUT_DIR) -> bool:
-    """Return True if both index artefacts exist in *output_dir*.
-
-    Intended as a cheap pre-flight check in the retriever so it can surface a
-    clean user-facing error before attempting a ``load()`` that would raise
-    ``FileNotFoundError`` deep inside the pipeline.
-    """
+    """Return True if both persisted FAISS artefacts exist."""
     out = Path(output_dir)
     return (out / INDEX_FILENAME).exists() and (out / ID_MAP_FILENAME).exists()
