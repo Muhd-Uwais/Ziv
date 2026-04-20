@@ -71,10 +71,10 @@ def main(
     Main entry point for ziv.
 
     Examples:
-      ziv build-index .
-      ziv search "find config loading"
       ziv init
       ziv start
+      ziv build-index .
+      ziv search "find config loading"
       ziv status
     """
     pass
@@ -97,7 +97,6 @@ def init(
         "-m",
         help=(
             "Model variant to download. Current only model: fast.\n"
-            "If you change model later, run ziv init again."
         ),
     ),
     verbose: bool = typer.Option(
@@ -120,7 +119,7 @@ def init(
 @app.command(
     help=(
         "Start the background embedding server.\n\n"
-        "Before running ziv search or build‑index, this server must\n"
+        "Before running ziv search or build‑index, the server must\n"
         "be running to handle embedding requests. Use ziv status to\n"
         "check if the server is already alive.\n\n"
         "Example usage:\n"
@@ -169,7 +168,7 @@ def start(
 @app.command(
     help=(
         "Build a semantic index over your codebase.\n\n"
-        "Ziv scans all files, splits them into chunks, and computes\n"
+        "ziv scans all files, splits them into chunks, and computes\n"
         "embeddings for each chunk. The index is stored in .ziv/.\n\n"
         "Typical usage:\n"
         "  ziv build-index .\n"
@@ -186,7 +185,7 @@ def build_index(
         "--batch-size",
         "-b",
         help=(
-            "Batch size for embedding requests [32, 64, 128].\n"
+            "Batch size for embedding requests [32, 64, 128, 512].\n"
             "Higher values are faster but use more memory."
         ),
     ),
@@ -199,9 +198,9 @@ def build_index(
 ):
     setup_logging(verbose)
 
-    if batch_size not in (32, 64, 128):
+    if batch_size not in (32, 64, 128, 512):
         raise typer.BadParameter(
-            "batch-size must be one of [32, 64, 128]", param_hint="--batch-size"
+            "batch-size must be one of [32, 64, 128, 512]", param_hint="--batch-size"
         )
 
     indexer = BuildIndex()
@@ -211,11 +210,11 @@ def build_index(
 @app.command(
     help=(
         "Search your indexed codebase with a natural language query.\n\n"
-        "Ziv embeds your query, finds the closest code chunks, and\n"
+        "ziv embeds your query, finds the closest code chunks, and\n"
         "displays them ranked by relevance.\n\n"
         "Example usage:\n"
-        "  ziv search \"how is config loaded?\"\n"
-        "  ziv search -l 5 \"find HTTP client init\""
+        "  ziv search \"where is request context handled?\"\n"
+        "  ziv search -l 5 \"session management\""
     )
 )
 def search(
@@ -362,7 +361,7 @@ def status():
 @app.command(
     help=(
         "Open a feedback form in your browser.\n\n"
-        "Ziv opens a local web server and your default browser so you\n"
+        "ziv opens a local web server and your default browser so you\n"
         "can submit feedback or suggestions.\n\n"
         "Usage:\n"
         "  ziv feedback"
