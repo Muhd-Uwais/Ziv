@@ -11,7 +11,7 @@ from typing import Union
 logger = logging.getLogger(__name__)
 
 
-class LightEmbeddder:
+class LightEmbedder:
     """
     Lightweight ONNX-based sentence embedder.
     """
