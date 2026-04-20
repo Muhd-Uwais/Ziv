@@ -1,158 +1,155 @@
-import os
+"""Lightweight ONNX sentence embedder used by Ziv."""
+
+from __future__ import annotations
+
 import json
 import logging
+from pathlib import Path
+
 import numpy as np
-import psutil
 import onnxruntime as ort
 from tokenizers import Tokenizer
-from typing import Union
 
 
 logger = logging.getLogger(__name__)
 
 
 class LightEmbedder:
-    """
-    Lightweight ONNX-based sentence embedder.
-    """
+    """ONNX-based sentence embedder with mean/CLS pooling support."""
 
     def __init__(self, model_dir: str, max_length: int = 256):
-
-        self.model_dir = model_dir
+        """Initialize tokenizer, pooling config, and ONNX session."""
+        self.model_dir = Path(model_dir)
         self.max_length = max_length
-        self._load(model_dir, max_length)
+
+        self.tokenizer: Tokenizer
+        self.session: ort.InferenceSession
+        self.pool_mean = True
+        self.pool_cls = False
+        self.do_normalize = False
+        self.use_token_type_ids = False
+
+        self._load_tokenizer()
+        self._load_pooling_config()
+        self._load_session()
+
         self._run_opts = ort.RunOptions()
         self._run_opts.add_run_config_entry(
-            "memory.enable_memory_arena_shrinkage", "cpu:0")
-
-    def _load(self, model_dir: str, max_length: int):
-
-        # Load tokenizer from tokenizer.json
-        tokenizer_path = os.path.join(model_dir, "tokenizer.json")
-        if not os.path.exists(tokenizer_path):
-            raise FileNotFoundError(f"tokenizer.json not found in {model_dir}")
-
-        self.tokenizer = Tokenizer.from_file(
-            os.path.join(model_dir, "tokenizer.json")
+            "memory.enable_memory_arena_shrinkage",
+            "cpu:0",
         )
-        # Tokenizer.from_file reads the raw tokenizer.json directly
-        # This is the same file Sentence Transformers uses — no format change
 
-        self.tokenizer.enable_truncation(max_length=max_length)
-        # if a sentence is longer than max_length tokens, cut it off
-
-        self.tokenizer.enable_padding(pad_token="[PAD]", length=None)
-        # when encoding a batch of sentences, shorter ones get padded with [PAD]
-
-        # Read pooling mode from 1_Pooling/config.json
-        pooling_path = os.path.join(model_dir, "1_Pooling", "config.json")
-        if not os.path.exists(pooling_path):
+    def _load_tokenizer(self) -> None:
+        """Load and configure the tokenizer."""
+        tokenizer_path = self.model_dir / "tokenizer.json"
+        if not tokenizer_path.exists():
             raise FileNotFoundError(
-                f"1_Pooling/config.json not found in {model_dir}")
+                f"tokenizer.json not found in {self.model_dir}")
 
-        with open(pooling_path) as f:
-            pcfg = json.load(f)
+        self.tokenizer = Tokenizer.from_file(str(tokenizer_path))
+        self.tokenizer.enable_truncation(max_length=self.max_length)
+        self.tokenizer.enable_padding(pad_token="[PAD]", length=None)
 
-        self.pool_mean = pcfg.get("pooling_mode_mean_tokens", True)
-        self.pool_cls = pcfg.get("pooling_mode_cls_token", False)
-        # we read the JSON and store which pooling mode the model uses
-        # for all-MiniLM-L6-v2 this will be pool_mean=True, pool_cls=False
+    def _load_pooling_config(self) -> None:
+        """Load pooling and normalization settings from model metadata."""
+        pooling_path = self.model_dir / "1_Pooling" / "config.json"
+        if not pooling_path.exists():
+            raise FileNotFoundError(
+                f"1_Pooling/config.json not found in {self.model_dir}"
+            )
 
-        # Check if 2_Normalize exists -> do we normalize?
-        self.do_normalize = os.path.isdir(
-            os.path.join(model_dir, "2_Normalize")
+        with pooling_path.open("r", encoding="utf-8") as file:
+            config = json.load(file)
+
+        self.pool_mean = config.get("pooling_mode_mean_tokens", True)
+        self.pool_cls = config.get("pooling_mode_cls_token", False)
+        self.do_normalize = (self.model_dir / "2_Normalize").is_dir()
+
+    def _load_session(self) -> None:
+        """Create the ONNX Runtime session."""
+        onnx_path = self.model_dir / "model.onnx"
+        if not onnx_path.exists():
+            raise FileNotFoundError(
+                f"model.onnx not found in {self.model_dir}")
+
+        session_options = ort.SessionOptions()
+        session_options.enable_cpu_mem_arena = True
+        session_options.enable_mem_pattern = True
+        session_options.graph_optimization_level = (
+            ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         )
-        # if the folder exists (even if empty), we L2-normalize the output
+        session_options.inter_op_num_threads = 1
 
-        onnx_path = os.path.join(model_dir, "model.onnx")
-        if not os.path.exists(onnx_path):
-            raise FileNotFoundError(f"model.onnx not found in {model_dir}")
-
-        sess_options = ort.SessionOptions()
-        sess_options.enable_cpu_mem_arena = True
-        sess_options.enable_mem_pattern = True
-        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        sess_options.intra_op_num_threads = psutil.cpu_count(logical=False)
-        sess_options.inter_op_num_threads = 1
-
-        # Load the ONNX model into onnxruntime
         self.session = ort.InferenceSession(
-            onnx_path,
-            sess_options=sess_options,
-            providers=["CPUExecutionProvider"]
+            str(onnx_path),
+            sess_options=session_options,
+            providers=["CPUExecutionProvider"],
         )
-        # InferenceSession loads and compiles the ONNX graph for the CPU
-        # providers list can include "CUDAExecutionProvider" for GPU
 
-        input_names = {inp.name for inp in self.session.get_inputs()}
+        input_names = {
+            input_meta.name for input_meta in self.session.get_inputs()}
         self.use_token_type_ids = "token_type_ids" in input_names
-        # If the exported model was from BERT → token_type_ids is present
-        # If from RoBERTa → it won't be, and we skip it
-        # This makes the class work for any model without code changes
 
         logger.info(
-            "LightEmbedder loaded: pool_mean=%s, normalize=%s, token_type_ids=%s",
-            self.pool_mean, self.do_normalize, self.use_token_type_ids
+            "LightEmbedder loaded: pool_mean=%s, pool_cls=%s, normalize=%s, token_type_ids=%s",
+            self.pool_mean,
+            self.pool_cls,
+            self.do_normalize,
+            self.use_token_type_ids,
         )
 
-    # Tokenize a batch of sentences
-    def _tokenize(self, texts: list) -> tuple:
-
+    def _tokenize(self, texts: list[str]) -> dict[str, np.ndarray]:
+        """Convert input texts into ONNX-ready arrays."""
         encoded = self.tokenizer.encode_batch(texts)
 
-        inputs = {
-            "input_ids": np.array([e.ids for e in encoded], dtype=np.int64),
-            "attention_mask": np.array([e.attention_mask for e in encoded], dtype=np.int64),
+        inputs: dict[str, np.ndarray] = {
+            "input_ids": np.asarray([item.ids for item in encoded], dtype=np.int64),
+            "attention_mask": np.asarray(
+                [item.attention_mask for item in encoded],
+                dtype=np.int64,
+            ),
         }
-        # attention_mask: 1 for real tokens, 0 for padding tokens
-        # We use this in mean pooling to ignore the padding positions
 
         if self.use_token_type_ids:
-            inputs["token_type_ids"] = np.array(
-                [e.type_ids for e in encoded], dtype=np.int64
+            inputs["token_type_ids"] = np.asarray(
+                [item.type_ids for item in encoded],
+                dtype=np.int64,
             )
-        # dtype must be int64 — this matches what we declared in input_names during export
 
         return inputs
 
-    def _mean_pool(self, token_embeddings, attention_mask) -> np.ndarray:
-
-        mask = attention_mask.astype(np.float32)[:, :, np.newaxis]
-
+    def _mean_pool(
+        self,
+        token_embeddings: np.ndarray,
+        attention_mask: np.ndarray,
+    ) -> np.ndarray:
+        """Apply attention-mask-aware mean pooling."""
+        mask = attention_mask.astype(np.float32)[..., np.newaxis]
         summed = (token_embeddings * mask).sum(axis=1)
-
-        # Sum real token vectors per sentence -> (batch, hidden_dim)
-
         counts = mask.sum(axis=1).clip(min=1e-9)
-
         return summed / counts
-        # Average of real token vectors = sentence embedding → (batch, hidden_dim)
 
-    def _l2_normalize(self, embeddings) -> np.ndarray:
+    def _l2_normalize(self, embeddings: np.ndarray) -> np.ndarray:
+        """L2-normalize embeddings in place."""
         norms = np.linalg.norm(
             embeddings, axis=1, keepdims=True).clip(min=1e-12)
         embeddings /= norms
         return embeddings
 
-    def encode(self, texts: Union[str, list[str]]) -> np.ndarray:
+    def encode(self, texts: str | list[str]) -> np.ndarray:
+        """Encode one or more texts into float32 embeddings."""
         if isinstance(texts, str):
             texts = [texts]
 
+        if not texts:
+            return np.empty((0, 0), dtype=np.float32)
+
         inputs = self._tokenize(texts)
-
         outputs = self.session.run(None, inputs, self._run_opts)
-        # Run the ONNX graph
-        # None = return all outputs
-        # outputs[0] = last_hidden_state: (batch, seq_len, hidden_dim)
+        token_embeddings = np.asarray(outputs[0], dtype=np.float32)
 
-        token_embeddings = outputs[0]
-
-        if self.pool_mean:
-            embeddings = self._mean_pool(
-                token_embeddings, inputs["attention_mask"])
-        elif self.pool_cls:
+        if self.pool_cls:
             embeddings = token_embeddings[:, 0, :]
-            # CLS token is always at position 0
         else:
             embeddings = self._mean_pool(
                 token_embeddings, inputs["attention_mask"])
@@ -161,4 +158,3 @@ class LightEmbedder:
             embeddings = self._l2_normalize(embeddings)
 
         return embeddings
-        # shape: (num_sentences, hidden_dim)
