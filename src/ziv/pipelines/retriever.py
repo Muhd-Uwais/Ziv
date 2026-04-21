@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
+class ServerUnavailable(Exception): pass
+
+
 class Retriever:
     """Load the persisted index and run semantic search queries against it."""
 
@@ -58,11 +61,7 @@ class Retriever:
         with console.status("[bold green]Analyzing query...[/bold green]", spinner="point"):
             if not self.__is_server_ready():
                 logger.error("Search failed: embedding server unreachable")
-                console.print(
-                    "[bold red]❌ Error:[/bold red] Embedding server is not running. "
-                    "Start it with [cyan]ziv start[/cyan]."
-                )
-                return None
+                raise ServerUnavailable("Embedding server is not running")
 
             try:
                 response = requests.post(

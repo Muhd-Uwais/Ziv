@@ -6,7 +6,7 @@ import time
 
 from importlib.metadata import version
 from ziv.pipelines.index_builder import BuildIndex
-from ziv.pipelines.retriever import Retriever
+from ziv.pipelines.retriever import Retriever, ServerUnavailable
 from ziv.api.process_manager import start_server, stop_server, get_server_status
 from ziv.core.downloader import download_model, _is_model_installed
 from ziv.cli.feedback import launch_feedback
@@ -237,9 +237,11 @@ def search(
 ):
     setup_logging(verbose)
     retriever = Retriever()
-    results = retriever.search(query, limit)
+    try:
+        results = retriever.search(query, limit)
 
-    if results == -1:
+    except ServerUnavailable:
+        console.print("[red]Start server with ziv start[/red]")
         return
 
     console.print()
