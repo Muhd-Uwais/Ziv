@@ -154,7 +154,7 @@ class _FeedbackHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def launch_feedback(version: str = "0.1.0", timeout: int = DEFAULT_TIMEOUT_SEC) -> None:
+def launch_feedback(version: str = "0.3.0", timeout: int = DEFAULT_TIMEOUT_SEC) -> None:
     """Launch the local browser-based feedback flow."""
     port = _find_free_port()
     server = _FeedbackServer(

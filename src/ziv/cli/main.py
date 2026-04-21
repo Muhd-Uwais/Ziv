@@ -34,7 +34,7 @@ console = Console()
 try:
     VERSION = version("ziv")
 except Exception:
-    VERSION = "0.1.0-dev"
+    VERSION = "0.3.0"
 
 
 def setup_logging(verbose: bool) -> None:
