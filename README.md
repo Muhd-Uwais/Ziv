@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/ziv_logo.svg" alt="ziv logo" width="120"/>
+  <img src="https://github.com/Muhd-Uwais/Pong/blob/master/ziv_logo.svg?raw=true" alt="Ziv logo" width="120"/>
   <h1>Ziv</h1>
   <p><strong>Local semantic code search for Python repositories — no cloud, no API keys.</strong></p>
 </div>
@@ -15,7 +15,7 @@
 </div>
 
 <div align="center">
-  <img src="assets/ziv_demo.gif" alt="ziv demo" width="700"/>
+  <img src="https://github.com/Muhd-Uwais/Pong/blob/master/ziv_demo.gif?raw=true" alt="ziv demo" width="700"/>
 </div>
 
 ---
