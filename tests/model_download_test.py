@@ -5,7 +5,9 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 from huggingface_hub import snapshot_download
 
 REPO_ID = "ziv-ai/embedder-fast-onnx"
-LOCAL_DIR = ".ziv/models/embedder-fast-onnx"
+MODEL_NAME = "embedder-fast-onnx"
+ZIV_HOME = os.path.join(os.path.expanduser("~"), ".ziv")
+LOCAL_DIR = os.path.join(ZIV_HOME, "models", MODEL_NAME)
 
 # Required files that must exist after download
 REQUIRED_FILES = [

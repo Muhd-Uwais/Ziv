@@ -3,7 +3,9 @@ import numpy as np
 import onnxruntime as ort
 from tokenizers import Tokenizer
 
-model_dir = ".ziv/models/embedder-fast-onnx"
+MODEL_NAME = "embedder-fast-onnx"
+ZIV_HOME = os.path.join(os.path.expanduser("~"), ".ziv")
+model_dir = os.path.join(ZIV_HOME, "models", MODEL_NAME)
 
 tokenizer = Tokenizer.from_file(os.path.join(model_dir, "tokenizer.json"))
 tokenizer.enable_truncation(max_length=256)
