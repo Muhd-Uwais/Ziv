@@ -260,7 +260,7 @@ ziv stop
 
 ### `ziv status`
 
-Display the current state of the background embedding server — whether it is running, its PID, the port it is bound to, and whether the model is fully loaded and ready.
+Display the current state of the background embedding server — whether it is running, its PID, and whether the model is fully loaded and ready.
 
 ```
 ziv status
@@ -460,7 +460,8 @@ ziv/
 ├── LICENSE
 ├── NOTICE
 ├── SECURITY.md
-└── README.md
+├── README.md
+└── README_PYPI.md
 ```
 
 ---
