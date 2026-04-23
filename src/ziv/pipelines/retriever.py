@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
-class ServerUnavailable(Exception): pass
+class ServerUnavailable(Exception):
+    pass
 
 
 class Retriever:
@@ -94,6 +95,12 @@ class Retriever:
             logger.info(
                 "Computed similarity scores for %d chunks", len(results))
             return results
+
+        except FileNotFoundError as exc:
+            logger.error("File not founded", exc_info=True)
+            console.print(
+                f"[bold red]❌ {exc}[/bold red]"
+            )
 
         except Exception as exc:
             logger.exception("Similarity search failed")

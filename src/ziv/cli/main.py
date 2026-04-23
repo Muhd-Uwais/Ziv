@@ -236,12 +236,16 @@ def search(
     ),
 ):
     setup_logging(verbose)
-    retriever = Retriever()
-    try:
-        results = retriever.search(query, limit)
 
+    try:
+        retriever = Retriever()
+        results = retriever.search(query, limit)
     except ServerUnavailable:
+
         console.print("[red]Start server with ziv start[/red]")
+        return
+
+    except FileNotFoundError:
         return
 
     console.print()

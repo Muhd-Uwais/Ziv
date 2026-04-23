@@ -7,7 +7,6 @@ import logging
 import math
 import os
 import time
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -30,6 +29,7 @@ from ..core.file_loader import load_files_from_directory
 from ..core.chunker import chunk_directory
 from ..core.vector_store import build_and_save
 from ..api.process_manager import get_server_url
+from .retriever import ServerUnavailable
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -61,8 +61,7 @@ class BuildIndex:
     def __is_server_ready(self) -> bool:
         """Return True if the embedding server responds with 200."""
         if self.api_link is None:
-            raise RuntimeError(
-                "Embedding server not running. Run `ziv start`.")
+            return False
         try:
             response = requests.get(self.api_link + "health", timeout=1)
             return response.status_code == 200
@@ -110,7 +109,8 @@ class BuildIndex:
         if not self.__is_server_ready():
             console.print(
                 "[bold red]❌ Embedding server not reachable.[/bold red]")
-            return None
+            logger.error("index build failed: embedding server unreachable")
+            raise ServerUnavailable("Embedding server is not running")
 
         url = f"{self.api_link}encode-chunks"
 
@@ -170,173 +170,185 @@ class BuildIndex:
             )
         )
 
-        with _make_progress() as progress:
-            # ── Scan files ────────────────────────────────────────────────────────
-            t = progress.add_task("[cyan]Scanning files...", total=None)
-            logger.info("Scanning directory: %s", root_path)
-            files = load_files_from_directory(root_path, extensions)
-            progress.update(
-                t,
-                description=f"[green]✓ Found {len(files)} files[/green]",
-                total=1,
-                completed=1,
-            )
-
-            # ── Chunk files ───────────────────────────────────────────────────────
-            t = progress.add_task("[cyan]Chunking files...", total=None)
-            logger.info(
-                "Splitting %d files into manageable chunks", len(files))
-            all_chunks = chunk_directory(files)
-            progress.update(
-                t,
-                description=f"[green]✓ Created {len(all_chunks)} chunks[/green]",
-                total=1,
-                completed=1,
-            )
-
-            if not all_chunks:
-                console.print("[bold green]Nothing to build!")
-                return
-
-            # ── Cache setup ───────────────────────────────────────────────────────
-            t = progress.add_task("[cyan]Checking cache...", total=None)
-            cache_dir = os.path.join(output_dir, "cache")
-            os.makedirs(cache_dir, exist_ok=True)
-
-            manifest_path = os.path.join(cache_dir, "cache_manifest.json")
-            embeddings_path = os.path.join(cache_dir, "embeddings.npy")
-
-            manifest = self._load_manifest(manifest_path)
-            embeddings = self._load_embeddings(embeddings_path)
-
-            new_chunks = [c for c in all_chunks if c["id"]
-                          not in manifest["items"]]
-            cached_count = len(all_chunks) - len(new_chunks)
-            progress.update(
-                t,
-                description=(
-                    f"[green]✓ Cache  [dim]{cached_count} hit · {len(new_chunks)} new[/dim]"
-                ),
-                total=1,
-                completed=1,
-            )
-            logger.info("Calling API to generate embeddings")
-
-            # ── Embed new chunks ──────────────────────────────────────────────────
-            if new_chunks:
-                num_batches = math.ceil(len(new_chunks) / batch_size)
-                embed_task = progress.add_task(
-                    f"[cyan]Embedding [bold white]{len(new_chunks)}[/bold white] new chunks...",
-                    total=num_batches,
+        try:
+            with _make_progress() as progress:
+                # ── Scan files ────────────────────────────────────────────────────────
+                t = progress.add_task("[cyan]Scanning files...", total=None)
+                logger.info("Scanning directory: %s", root_path)
+                files = load_files_from_directory(root_path, extensions)
+                progress.update(
+                    t,
+                    description=f"[green]✓ Found {len(files)} files[/green]",
+                    total=1,
+                    completed=1,
                 )
 
-                new_embeddings = self._embed_chunks(
-                    new_chunks, batch_size, progress, embed_task
+                # ── Chunk files ───────────────────────────────────────────────────────
+                t = progress.add_task("[cyan]Chunking files...", total=None)
+                logger.info(
+                    "Splitting %d files into manageable chunks", len(files))
+                all_chunks = chunk_directory(files)
+                progress.update(
+                    t,
+                    description=f"[green]✓ Created {len(all_chunks)} chunks[/green]",
+                    total=1,
+                    completed=1,
                 )
 
-                if new_embeddings is None:
-                    console.print(
-                        "[bold red]❌ Embedding failed. Aborting.[/bold red]")
+                if not all_chunks:
+                    console.print("[bold green]Nothing to build!")
                     return
 
+                # ── Cache setup ───────────────────────────────────────────────────────
+                t = progress.add_task("[cyan]Checking cache...", total=None)
+                cache_dir = os.path.join(output_dir, "cache")
+                os.makedirs(cache_dir, exist_ok=True)
+
+                manifest_path = os.path.join(cache_dir, "cache_manifest.json")
+                embeddings_path = os.path.join(cache_dir, "embeddings.npy")
+
+                manifest = self._load_manifest(manifest_path)
+                embeddings = self._load_embeddings(embeddings_path)
+
+                new_chunks = [c for c in all_chunks if c["id"]
+                              not in manifest["items"]]
+                cached_count = len(all_chunks) - len(new_chunks)
                 progress.update(
-                    embed_task,
-                    description=f"[green]✓ Embedded {len(new_chunks)} chunks[/green]",
+                    t,
+                    description=(
+                        f"[green]✓ Cache  [dim]{cached_count} hit · {len(new_chunks)} new[/dim]"
+                    ),
+                    total=1,
+                    completed=1,
                 )
+                logger.info("Calling API to generate embeddings")
 
-                start_row = len(embeddings) if embeddings.size > 0 else 0
-                for i, chunk in enumerate(new_chunks):
-                    manifest["items"][chunk["id"]] = {"row": start_row + i}
-
-                if embeddings.size == 0:
-                    embeddings = new_embeddings
-                else:
-                    embeddings = np.concatenate(
-                        [embeddings, new_embeddings], axis=0, dtype=np.float32
+                # ── Embed new chunks ──────────────────────────────────────────────────
+                if new_chunks:
+                    num_batches = math.ceil(len(new_chunks) / batch_size)
+                    embed_task = progress.add_task(
+                        f"[cyan]Embedding [bold white]{len(new_chunks)}[/bold white] new chunks...",
+                        total=num_batches,
                     )
 
-                self._save_manifest(manifest_path, manifest)
-                self._save_embeddings(embeddings_path, embeddings)
+                    try:
+                        new_embeddings = self._embed_chunks(
+                            new_chunks, batch_size, progress, embed_task
+                        )
+                    except ServerUnavailable:
+                        raise
 
-            else:
+                    if new_embeddings is None:
+                        console.print(
+                            "[bold red]❌ Embedding failed. Aborting.[/bold red]")
+                        return
+
+                    progress.update(
+                        embed_task,
+                        description=f"[green]✓ Embedded {len(new_chunks)} chunks[/green]",
+                    )
+
+                    start_row = len(embeddings) if embeddings.size > 0 else 0
+                    for i, chunk in enumerate(new_chunks):
+                        manifest["items"][chunk["id"]] = {"row": start_row + i}
+
+                    if embeddings.size == 0:
+                        embeddings = new_embeddings
+                    else:
+                        embeddings = np.concatenate(
+                            [embeddings, new_embeddings], axis=0, dtype=np.float32
+                        )
+
+                    self._save_manifest(manifest_path, manifest)
+                    self._save_embeddings(embeddings_path, embeddings)
+
+                else:
+                    t = progress.add_task(
+                        "[dim]All chunks cached — skipping embedding[/dim]", total=1
+                    )
+                    progress.advance(t)
+
+                # ── Build FAISS index ─────────────────────────────────────────────────
                 t = progress.add_task(
-                    "[dim]All chunks cached — skipping embedding[/dim]", total=1
+                    "[cyan]Building FAISS index...", total=None)
+
+                valid_indices: list[int] = []
+                metadata: list[dict[str, Any]] = []
+
+                for chunk in all_chunks:
+                    item = manifest["items"].get(chunk["id"])
+                    if item is None:
+                        logger.warning(
+                            "Missing embedding for chunk %s, skipping", chunk["id"])
+                        continue
+
+                    valid_indices.append(item["row"])
+                    metadata.append(
+                        {
+                            "id": chunk["id"],
+                            "file_path": chunk["file_path"],
+                            "start_line": chunk["start_line"],
+                            "end_line": chunk["end_line"],
+                            "content": chunk["content"],
+                            "embedding_index": len(valid_indices) - 1,
+                        }
+                    )
+
+                if not valid_indices:
+                    console.print(
+                        Panel(
+                            "[yellow]No valid chunks to index (possibly corrupted cache).[/yellow]",
+                            border_style="yellow",
+                            title="[bold]ziv[/bold]",
+                            expand=False,
+                        )
+                    )
+                    return
+
+                final_embeddings = embeddings[valid_indices].astype(
+                    np.float32, copy=False)
+                build_and_save(final_embeddings, metadata, output_dir)
+
+                progress.update(
+                    t,
+                    description=f"[green]✓ FAISS index ready[/green]  [dim]({len(valid_indices)} vectors)[/dim]",
+                    total=1,
+                    completed=1,
                 )
-                progress.advance(t)
 
-            # ── Build FAISS index ─────────────────────────────────────────────────
-            t = progress.add_task("[cyan]Building FAISS index...", total=None)
+                # ── Final summary ─────────────────────────────────────────────────────
+                elapsed = time.monotonic() - start_time
 
-            valid_indices: list[int] = []
-            metadata: list[dict[str, Any]] = []
+                summary = Table(show_header=False, box=None, padding=(0, 2))
+                summary.add_column(style="dim")
+                summary.add_column(style="bold white")
+                summary.add_row("Total chunks", str(len(all_chunks)))
+                summary.add_row("Cached  (reused)", str(cached_count))
+                summary.add_row("Newly embedded", str(len(new_chunks)))
+                summary.add_row("Index saved to", str(output_dir))
+                summary.add_row("Time elapsed", f"{elapsed:.1f}s")
 
-            for chunk in all_chunks:
-                item = manifest["items"].get(chunk["id"])
-                if item is None:
-                    logger.warning(
-                        "Missing embedding for chunk %s, skipping", chunk["id"])
-                    continue
-
-                valid_indices.append(item["row"])
-                metadata.append(
-                    {
-                        "id": chunk["id"],
-                        "file_path": chunk["file_path"],
-                        "start_line": chunk["start_line"],
-                        "end_line": chunk["end_line"],
-                        "content": chunk["content"],
-                        "embedding_index": len(valid_indices) - 1,
-                    }
-                )
-
-            if not valid_indices:
                 console.print(
                     Panel(
-                        "[yellow]No valid chunks to index (possibly corrupted cache).[/yellow]",
-                        border_style="yellow",
-                        title="[bold]ziv[/bold]",
+                        summary,
+                        title="[bold green]✅ Index built successfully[/bold green]",
+                        border_style="green",
+                        padding=(0, 2),
                         expand=False,
                     )
                 )
-                return
 
-            final_embeddings = embeddings[valid_indices].astype(
-                np.float32, copy=False)
-            build_and_save(final_embeddings, metadata, output_dir)
-
-            progress.update(
-                t,
-                description=f"[green]✓ FAISS index ready[/green]  [dim]({len(valid_indices)} vectors)[/dim]",
-                total=1,
-                completed=1,
-            )
-
-            # ── Final summary ─────────────────────────────────────────────────────
-            elapsed = time.monotonic() - start_time
-
-            summary = Table(show_header=False, box=None, padding=(0, 2))
-            summary.add_column(style="dim")
-            summary.add_column(style="bold white")
-            summary.add_row("Total chunks", str(len(all_chunks)))
-            summary.add_row("Cached  (reused)", str(cached_count))
-            summary.add_row("Newly embedded", str(len(new_chunks)))
-            summary.add_row("Index saved to", str(output_dir))
-            summary.add_row("Time elapsed", f"{elapsed:.1f}s")
-
-            console.print(
-                Panel(
-                    summary,
-                    title="[bold green]✅ Index built successfully[/bold green]",
-                    border_style="green",
-                    padding=(0, 2),
-                    expand=False,
+                logger.info(
+                    "Index build completed — %d total, %d new, %d cached, %.1fs",
+                    len(all_chunks),
+                    len(new_chunks),
+                    cached_count,
+                    elapsed,
                 )
-            )
 
-            logger.info(
-                "Index build completed — %d total, %d new, %d cached, %.1fs",
-                len(all_chunks),
-                len(new_chunks),
-                cached_count,
-                elapsed,
-            )
+        except ServerUnavailable:
+            console.clear()
+            console.print("[red]❌ Embedding server not reachable.[/red]")
+            console.print(
+                "[white]Start server with [cyan]`ziv start`[/cyan] first.[/white]")
+            return
