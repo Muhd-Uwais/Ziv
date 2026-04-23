@@ -26,6 +26,13 @@ dependencies = [
 ]
 authors = [{ name = "Muhd Uwais" }]
 
+[project.urls]
+"Homepage" = "https://github.com/Muhd-Uwais/ziv"
+"Source" = "https://github.com/Muhd-Uwais/ziv"
+"Bug Tracker" = "https://github.com/Muhd-Uwais/ziv/issues"
+"Changelog" = "https://github.com/Muhd-Uwais/ziv/blob/main/CHANGELOG.md"
+"Documentation" = "https://github.com/Muhd-Uwais/ziv#readme"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ziv"]
 
