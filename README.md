@@ -409,11 +409,12 @@ A code-aware model is the top priority for version 0.4.0 and will significantly 
 
 ## Roadmap
 
-| Version    | Status           | Focus                                                               |
-| ---------- | ---------------- | ------------------------------------------------------------------- |
-| **0.3.0**  | ✅ Current (Beta) | FAISS retrieval, ONNX model, incremental indexing, improved CLI     |
-| **0.4.0**  | 🔜 Next           | Code-aware embedding model + AST-based chunking for better accuracy |
-| **0.5.0+** | 🔜 Planned        | Multi-language support, Rust-based performance improvements         |
+| Version    | Status            | Focus                                                              |
+| ---------- | ----------------  | -------------------------------------------------------------------|
+| **0.3.0**  | ✅ Current (Beta) | FAISS retrieval, ONNX model, incremental indexing, improved CLI    |
+| **0.4.0**  | 🔜 Next           | Code-aware embedding model                                         |
+| **0.4.1**  | 🔜 Soon           | AST-based chunking for better accuracy                             |
+| **0.5.0+** | 🔜 Planned        | Multi-language support, Rust-based performance improvements        |
 
 The primary goal of 0.4.0 is replacing the general-purpose model with a code-aware one and switching from line-based chunking to AST-level parsing — this is expected to significantly improve retrieval quality.
 
