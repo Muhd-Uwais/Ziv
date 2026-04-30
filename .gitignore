@@ -5,6 +5,7 @@ models/
 .ziv/
 dist/
 artifacts/benchmarks/
+.vscode/
 
 
 # files:
